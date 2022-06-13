@@ -1,3 +1,4 @@
+use std::time::Duration
 
 trait State {
 
@@ -17,8 +18,14 @@ trait State {
     // get the list of pedestrians
     fn get_pedestrians(&self) ->  Vec<Box<dyn Pedestrian>>;
 
-    fn update(&mut self);
+    // get time interval until next event
+    fn get_next_event_time(&self) -> Duration;
 
+    // roll state forward by time interval
+    fn roll_forward_by(&mut self, t: Duration); 
+
+    // update state
+    fn instantaneous_update(&mut self);
 
 }
 
