@@ -16,13 +16,13 @@ trait State {
     fn timestamp(&self) -> Instant;
 
     // get the road
-    fn get_road(&self) -> Road;
+    fn get_road(&self) -> &Road; // **NOTE** return type changed.
 
     // get the list of vehicles
-    fn get_vehicles(&self) -> Vec<Box<dyn Vehicle>>;
+    fn get_vehicles(&self) -> &Vec<Box<dyn Vehicle>>;
 
     // get the list of pedestrians
-    fn get_pedestrians(&self) ->  Vec<Pedestrian>;
+    fn get_pedestrians(&self) ->  &Vec<Pedestrian>;
 
     // get time interval until next event
     fn time_to_next_event(&self) -> Duration;
@@ -54,7 +54,36 @@ impl SimulatorState {
 
 impl State for SimulatorState {
 
-    fn timestamp() {
+    fn timestamp(&self) -> Instant {
+        Instant::now()
+    }
+
+    fn get_road(&self) -> &Road {
+        &self.road
+    }
+
+    // get the list of vehicles
+    fn get_vehicles(&self) -> &Vec<Box<dyn Vehicle>> {
+        &self.vehicles
+    }
+
+    // get the list of pedestrians
+    fn get_pedestrians(&self) ->  &Vec<Pedestrian> {
+        &self.pedestrians
+    }
+
+    // get time interval until next event
+    fn time_to_next_event(&self) -> Duration {
+        Duration::new(0, 0)
+    }
+
+    // roll state forward by time interval
+    fn roll_forward_by(&mut self, duration: Duration) {
+
+    }
+
+    // update state
+    fn instantaneous_update(&mut self) {
 
     }
 
@@ -67,14 +96,14 @@ mod tests {
     #[test]
     fn test_simulator_state_constructor() {
 
-        let road = Road { length: 20.0f32, crossings: Vec::new() };
+        let road = Road::new(20.0f32, Vec::new());
         let state = SimulatorState::new(road);
 
-        assert_eq!(road.get_length(), 20.0f32);
+        assert_eq!(state.get_road().get_length(), 20.0f32);
 
-        assert_eq!(state.timestamp(), 0.0); // Initial timestamp is zero.
+        // assert_eq!(state.timestamp(), 0.0); // Initial timestamp is zero.
 
-        assert_eq!(state.get_vehicles().length(), 0); // No vehicles
-        assert_eq!(state.get_pedestrians().length(), 0); // No pedestrians
+        assert_eq!(state.get_vehicles().len(), 0); // No vehicles
+        assert_eq!(state.get_pedestrians().len(), 0); // No pedestrians
     }
 }
