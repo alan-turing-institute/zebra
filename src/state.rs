@@ -8,6 +8,15 @@ trait State {
     // fn get_vehicles(&self) -> &[dyn Vehicle];
     fn timestamp(&self) -> Instant;
 
+    // get the road
+    fn get_road(&self) -> Road;
+
+    // get the list of vehicles
+    fn get_vehicles(&self) -> Vec<Box<dyn Vehicle>>;
+
+    // get the list of pedestrians
+    fn get_pedestrians(&self) ->  Vec<Box<dyn Pedestrian>>;
+
     fn update(&mut self);
 
 
