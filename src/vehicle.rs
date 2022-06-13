@@ -1,10 +1,5 @@
 use std::time::{Instant, Duration};
 
-
-fn main(){
-    print!("Hello world");
-}
-
 enum Action {
     Accelerate,
     Deccelerate,
@@ -59,8 +54,8 @@ impl Vehicle for Car {
     
     fn action(&mut self, action:Action) {
         match action {
-        Action::Accelerate  => self.acceleration = 3,
-        Action::Deccelerate => self.acceleration = -4,
+        Action::Accelerate  => self.acceleration = ACCELERATION_VALUE,
+        Action::Deccelerate => self.acceleration = DECCELERATION_VALUE,
         Action::StaticSpeed => self.acceleration = 0};
     }
     
@@ -74,11 +69,13 @@ impl Vehicle for Car {
         speed = speed + acceleration * seconds;
         position = position + (0.5 * acceleration * seconds * seconds);
 
-        assert!(speed < 13.41);
+        assert!(speed < MAX_SPEED);
     }
 }
 
-
+const MAX_SPEED: f32 = 13.41;
+const ACCELERATION_VALUE: f32 = 3;
+const DECCELERATION_VALUE: f32 = -4;
 
 #[cfg(test)]
 mod tests {
