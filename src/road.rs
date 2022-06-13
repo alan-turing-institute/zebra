@@ -1,5 +1,4 @@
 
-use std::fmt;
 use std::time::{Duration};
 use serde::{Serialize, Deserialize};
 
@@ -126,7 +125,7 @@ mod tests {
     #[test]
     fn test_arrive_to_stop_zebra() {
         let test_zebra = Crossing::zebra(25.0);
-        assert_eq!(test_zebra.arrival_to_stop_time(), 0.0f32);
+        assert_eq!(test_zebra.arrival_to_stop_time(), Duration::from_secs(0));
     }
 
     #[test]
