@@ -19,10 +19,10 @@ trait State {
     fn get_pedestrians(&self) ->  Vec<Box<dyn Pedestrian>>;
 
     // get time interval until next event
-    fn get_next_event_time(&self) -> Duration;
+    fn time_to_next_event(&self) -> Duration;
 
     // roll state forward by time interval
-    fn roll_forward_by(&mut self, t: Duration); 
+    fn roll_forward_by(&mut self, duration: Duration); 
 
     // update state
     fn instantaneous_update(&mut self);
