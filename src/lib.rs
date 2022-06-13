@@ -1,5 +1,5 @@
 
 
-mod road;
+pub mod road;
 
 pub use road::*;
