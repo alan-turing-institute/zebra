@@ -15,6 +15,8 @@ pub trait Person {
     fn arrival_time(&self) -> Instant;
 }
 
+// Sequence of pedestrians with arrival times 
+// generate_pedestrian() to be implemented for struct State
 
 pub struct Pedestrian { 
     location: Crossing,
