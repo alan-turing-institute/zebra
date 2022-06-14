@@ -12,7 +12,7 @@ enum Action {
     StaticSpeed
 }
 
-trait Vehicle {
+pub trait Vehicle {
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
     fn get_position(&self) -> f32;
@@ -22,8 +22,7 @@ trait Vehicle {
     fn roll_forward_by(&mut self, duration: TimeDelta);
 }
 
-
-struct Car {
+pub struct Car {
     length: f32,
     buffer_zone: f32,
     position: f32,

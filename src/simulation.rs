@@ -7,7 +7,7 @@ use crate::Time;
 use crate::road::Road;
 use crate::time::TIME_RESOLUTION;
 
-struct Simulation {
+pub struct Simulation {
 
     seed: u64,
 
