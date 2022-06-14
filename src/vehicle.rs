@@ -1,4 +1,6 @@
-use std::time::{Instant, Duration};
+use crate::Time;
+use crate::time::TimeDelta;
+use crate::time::TIME_RESOLUTION;
 
 enum Action {
     Accelerate,
@@ -14,7 +16,7 @@ trait Vehicle {
     fn get_speed(&self) -> f32;
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
-    fn roll_forward_by(&mut self, duration: Duration);
+    fn roll_forward_by(&mut self, duration: TimeDelta);
 }
 
 
@@ -65,16 +67,16 @@ impl Vehicle for Car {
         Action::StaticSpeed => self.acceleration = 0.0};
     }
     
-    fn roll_forward_by(&mut self, duration: Duration) {
+    fn roll_forward_by(&mut self, duration: TimeDelta) {
         let position = self.position;
         let speed = self.speed;
         let acceleration = self.acceleration;
-        let seconds = duration.as_secs_f32(); // TODO this is broken
+        let seconds = duration.into(f32); // TODO this is broken
         
         self.speed = speed + acceleration * seconds;
 
         if acceleration == 0.0 {
-            self.position = position + self.speed * seconds;
+            self.position = direction_bool*(position + self.speed * seconds);
         } else {
             self.position = position + (0.5 * acceleration * seconds * seconds);
         }
@@ -108,7 +110,7 @@ mod tests {
     fn test_roll_forward_static(){
         let mut test_car = Car::new(0.0);
         test_car.action(Action::StaticSpeed);
-        test_car.roll_forward_by(Duration::new(5, 0));
+        test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
         assert_eq!(test_car.get_position(), 0.0);
         assert_eq!(test_car.get_acceleration(), 0.0);
@@ -118,9 +120,9 @@ mod tests {
         let mut test_car = Car::new(0.0);
         test_car.action(Action::Accelerate);
 
-        let test_secs = Duration::new(1, 0);
+        let mut test_secs = TimeDelta::new(1000); 
         test_car.roll_forward_by(test_secs);
-        assert_eq!(test_car.get_speed(), test_secs.as_secs_f32() * test_car.get_acceleration());
+        assert_eq!(test_car.get_speed(), (test_secs as f32) * test_car.get_acceleration());
         assert!(test_car.get_position() > 0.0);
         assert_eq!(test_car.get_acceleration(), 3.0);
     }
