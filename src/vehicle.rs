@@ -6,10 +6,6 @@ const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
 const DECCELERATION_VALUE: f32 = -4.0;
 
-// const CROSSING_TIME: Duration = Duration::from_secs(10);
-// const WAIT_TIME: Duration = Duration::from_secs(5);
-// const GO_TIME: Duration = Duration::from_secs(5);
-
 enum Action {
     Accelerate,
     Deccelerate,
@@ -75,11 +71,9 @@ impl Vehicle for Car {
         };
     }
 
-    fn roll_forward_by(&mut self, duration: TimeDelta) {
-        // let position = self.position;
-        // let speed = self.speed;
-        // let acceleration = self.acceleration;
-        let seconds: f32 = duration.into();
+    fn roll_forward_by(&mut self, time_delta: TimeDelta) {
+
+        let seconds: f32 = time_delta.into();
 
         // Update the vehicle's position.
         self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
@@ -87,15 +81,8 @@ impl Vehicle for Car {
         // Update the vehicle's speed.
         self.speed = self.speed + self.acceleration * seconds;
 
-        // if self.acceleration == 0.0 {
-        //     self.position = direction_bool*(position + self.speed * seconds);
-        // } else {
-        //     self.position = position + (0.5 * acceleration * seconds * seconds);
-        // }
-
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
-
     }
 }
 

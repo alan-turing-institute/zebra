@@ -21,7 +21,7 @@ trait State {
     fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> TimeDelta; // **NOTE** new parameters.
 
     // roll state forward by time interval
-    fn roll_forward_by(&mut self, duration: TimeDelta);
+    fn roll_forward_by(&mut self, time_delta: TimeDelta);
 
     // update state
     fn instantaneous_update(&mut self);
@@ -75,7 +75,7 @@ impl<'a> State for SimulatorState<'a> {
     }
 
     // roll state forward by time interval
-    fn roll_forward_by(&mut self, duration: TimeDelta) {
+    fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
     }
 
@@ -106,21 +106,19 @@ mod tests {
 
         let state = SimulatorState::new();
 
-	// Min is in ped_arrival_times
+    	// Min is in ped_arrival_times
         let ped_arrival_times = vec!(10, 20);
         let veh_arrival_times = vec!(12, 21);
 
         let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
-
         assert_eq!(actual, TimeDelta::new(10));
 
-	// Min is in veh_arrival_times
-	let ped_arrival_times = vec!(10, 20);
+        // Min is in veh_arrival_times
+        let ped_arrival_times = vec!(10, 20);
         let veh_arrival_times = vec!(8, 21);
 
-	let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
-
-	assert_eq!(actual, TimeDelta::new(8));
+    	let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
+	    assert_eq!(actual, TimeDelta::new(8));
 
     }
 }
