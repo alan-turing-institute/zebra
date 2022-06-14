@@ -8,10 +8,9 @@ enum Action {
 
 
 trait Vehicle {
-    fn get_length() -> f32;
-    fn get_buffer_zone() -> f32;
+    fn get_length(&self) -> f32;
+    fn get_buffer_zone(&self) -> f32;
     fn get_position(&self) -> f32;
-    // or (f32, f32)
     fn get_speed(&self) -> f32;
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
@@ -28,16 +27,23 @@ struct Car {
     
 }
 
-// impl Car {
-//     fn set_acceleration() -> 
-// }
+impl Car {
+    pub fn new(position: f32) -> Car {
+        Car { position, 
+              length: 4.0f32,
+              buffer_zone: 1.0f32,
+              speed: 0.0f32,
+              acceleration: 0.0f32
+    }
+}
+}
 
 impl Vehicle for Car {
     
-    fn get_length() -> f32 {
+    fn get_length(&self) -> f32 {
        self.length
     }
-    fn get_buffer_zone() -> f32 {
+    fn get_buffer_zone(&self) -> f32 {
         self.buffer_zone
     }
     fn get_position(&self) -> f32 {
@@ -74,6 +80,7 @@ impl Vehicle for Car {
         }
 
         assert!(self.speed <= MAX_SPEED);
+        assert!(self.speed >= 0.0);
 
     }
 }
@@ -94,19 +101,18 @@ mod tests {
     #[test]
     fn test_car_postion(){
         let test_car = Car{position: 0.0};
-        assert_eq!(test_car.position(), 0.0);
+        assert_eq!(test_car.get_position(), 0.0);
     }
 
     #[test]
     fn test_car_length(){
         let test_car = Car{length: 4.0};
-        assert_eq!(test_car.length(),4.0);
+        assert_eq!(test_car.get_length(),4.0);
     }
 
     // Test cases for roll forwards
     // Position = 0, acceleration = 0, speed = 0
     // Position = 0, acceleration = +3, speed = 0
-    // Position = 0, acceleration = -4, speed = 0
     // Position = 0, acceleration = 0, speed = 10
     // Position = 0, acceleration = +3, speed = 10
     // Position = 0, acceleration = -4, speed = 10
@@ -114,7 +120,7 @@ mod tests {
     // Tests for the Controller(?)
     // Don't deccelerate when speed is 0
     // Don't accelerate if at the speed limit
-
+    // Stop deceleration when speed is 0
 
 }
 

@@ -7,6 +7,7 @@ mod road;
 mod state;
 mod pedestrian;
 mod simulation;
+mod vehicle;
 
 pub use time::TimeDelta;
 
