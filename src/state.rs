@@ -64,14 +64,14 @@ impl<'a> State for SimulatorState<'a> {
     // get time interval until next event
     fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> TimeDelta {
 	// get min of pedestrian and vehicle arrival times
-	let min_arrival_times = *ped_arrival_times.iter().min().unwrap();
+	let min_ped_times = *ped_arrival_times.iter().min().unwrap();
 	let min_veh_times = *veh_arrival_times.iter().min().unwrap();
 
 	// return the smallest of the two times as the next event
-	if min_veh_times < min_arrival_times {
+	if min_veh_times < min_ped_times {
 	    return TimeDelta::new(min_veh_times);
 	}
-	TimeDelta::new(min_arrival_times)
+	TimeDelta::new(min_ped_times)
     }
 
     // roll state forward by time interval
