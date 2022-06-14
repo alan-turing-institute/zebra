@@ -10,7 +10,7 @@ mod simulation;
 
 pub use time::TimeDelta;
 
-pub type Time = TimeDelta;
+pub type Time = i64;
 
 
 pub use road::*;
