@@ -106,12 +106,21 @@ mod tests {
 
         let state = SimulatorState::new();
 
+	// Min is in ped_arrival_times
         let ped_arrival_times = vec!(10, 20);
         let veh_arrival_times = vec!(12, 21);
 
         let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
 
         assert_eq!(actual, TimeDelta::new(10));
+
+	// Min is in veh_arrival_times
+	let ped_arrival_times = vec!(10, 20);
+        let veh_arrival_times = vec!(8, 21);
+
+	let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
+
+	assert_eq!(actual, TimeDelta::new(8));
 
     }
 }
