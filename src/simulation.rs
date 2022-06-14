@@ -5,6 +5,7 @@ use rand::rngs::StdRng;
 
 use crate::Time;
 use crate::road::Road;
+use crate::time::TIME_RESOLUTION;
 
 struct Simulation {
 
@@ -16,8 +17,8 @@ struct Simulation {
     ped_arrival_rate: f32,
     veh_arrival_rate: f32,
 
-    pub ped_arrival_times: Vec<f32>,
-    pub veh_arrival_times: Vec<f32>,
+    pub ped_arrival_times: Vec<Time>,
+    pub veh_arrival_times: Vec<Time>,
 
     road: Road
 }
@@ -77,7 +78,7 @@ fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng: &mu
 
 fn interarrival_time(arrival_rate: f32, rng: &mut StdRng) -> Time {
     let exp = Exp::new(arrival_rate).unwrap(); // see https://docs.rs/rand_distr/0.2.1/rand_distr/struct.Exp.html
-    exp.sample(rng)
+    f32::round(exp.sample(rng) * (TIME_RESOLUTION as f32)) as i64
 }
 
 #[cfg(test)]
@@ -90,7 +91,7 @@ mod tests {
         // Set the random seed.
         let mut rng = StdRng::seed_from_u64(147);
         let actual = interarrival_time(2.0, &mut rng);
-        let expected = 0.26590475;
+        let expected = 266;
         assert_eq!(actual, expected);
     }
 
@@ -101,7 +102,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(147);
 
         // With this seed, there are 2 arrivals in 10 seconds.
-        let actual = arrival_times(&0.0, &10.0, 0.2, &mut rng);
+        let actual = arrival_times(&0, &10, 0.2, &mut rng);
         assert_eq!(actual.len(), 2);
 
         // TODO NEXT: FIX ERROR: "the trait bound `f32: Ord` is not satisfied"

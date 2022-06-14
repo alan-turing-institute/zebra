@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TimeDelta(i64);
 
-const TIME_RESOLUTION: i64 = 1000;
+pub const TIME_RESOLUTION: i64 = 1000;
 
 impl TimeDelta {
 
