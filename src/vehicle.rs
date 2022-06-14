@@ -69,7 +69,7 @@ impl Vehicle for Car {
         self.speed = speed + acceleration * seconds;
         self.position = position + (0.5 * acceleration * seconds * seconds);
 
-        assert!(speed < MAX_SPEED);
+        assert!(speed <= MAX_SPEED);
 
     }
 }
