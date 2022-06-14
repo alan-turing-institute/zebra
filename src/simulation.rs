@@ -102,7 +102,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(147);
 
         // With this seed, there are 2 arrivals in 10 seconds.
-        let actual = arrival_times(&0, &10, 0.2, &mut rng);
+        let actual = arrival_times(&0, &10000, 0.2, &mut rng);
         assert_eq!(actual.len(), 2);
 
         // TODO NEXT: FIX ERROR: "the trait bound `f32: Ord` is not satisfied"
