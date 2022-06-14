@@ -52,15 +52,17 @@ mod tests {
 
     #[test]
     fn test_pedestrian_location() {
-        let test_pelican = Crossing::pelican(25.0);
-	let test_pedestrian = Pedestrian::new(&test_pelican, 0);
+        // let test_pelican = Crossing::pelican(25.0);
+        let test_pelican = Crossing::pelican();
+	    let test_pedestrian = Pedestrian::new(&test_pelican, 0);
         assert_eq!(test_pedestrian.location(), &test_pelican);
     }
 
     #[test]
     fn test_pedestrian_arrival() {
-        let test_zebra = Crossing::zebra(25.0);
-	let arrival_time = 0;
+        // let test_zebra = Crossing::zebra(25.0);
+        let test_zebra = Crossing::zebra();
+	    let arrival_time = 0;
         let test_pedestrian = Pedestrian::new(&test_zebra, arrival_time);
         let complete_time = test_zebra.stop_time() + test_pedestrian.arrival_time;
         assert_eq!(
