@@ -1,6 +1,8 @@
 
-use std::time::{Duration};
+// use std::time::{Duration};
 use serde::{Serialize, Deserialize};
+
+use crate::TimeDelta;
 
 type Length = f32;
 
@@ -8,19 +10,19 @@ type Length = f32;
 pub enum Crossing {
     Zebra {
         position: Length,  // position along road
-        cross_time: Duration
+        cross_time: TimeDelta
     },
     Pelican {
         position: Length, // position along road
-        stop_time: Duration, // time traffic is stopped
-        wait_time: Duration, // time from pressing button to stop
-        go_time: Duration // min time traffic flow before a stop can occur
+        stop_time: TimeDelta, // time traffic is stopped
+        wait_time: TimeDelta, // time from pressing button to stop
+        go_time: TimeDelta // min time traffic flow before a stop can occur
     }
 }
 
-const CROSSING_TIME: Duration = Duration::from_secs(10);
-const WAIT_TIME: Duration = Duration::from_secs(5);
-const GO_TIME: Duration = Duration::from_secs(5);
+const CROSSING_TIME: TimeDelta = TimeDelta::from(10);
+const WAIT_TIME: TimeDelta = TimeDelta::from(5);
+const GO_TIME: TimeDelta = TimeDelta::from(5);
 
 impl Crossing {
 
@@ -46,23 +48,23 @@ impl Crossing {
         }
     }
 
-    pub fn stop_time(&self) -> Duration {
+    pub fn stop_time(&self) -> TimeDelta {
         match self {
             Crossing::Zebra {cross_time, ..} => *cross_time,
             Crossing::Pelican { stop_time, ..} => *stop_time
         }
     }
 
-    pub fn arrival_to_stop_time(&self) -> Duration {
+    pub fn arrival_to_stop_time(&self) -> TimeDelta {
         match self {
-            Crossing::Zebra {..} => Duration::from_secs(0),
+            Crossing::Zebra {..} => TimeDelta::from(0),
             Crossing::Pelican {wait_time, ..} => *wait_time
         }
     }
 
-    pub fn min_time_to_next_stop(&self) -> Duration {
+    pub fn min_time_to_next_stop(&self) -> TimeDelta {
         match self {
-            Crossing::Zebra {..} => Duration::from_secs(0),
+            Crossing::Zebra {..} => TimeDelta::from(0),
             Crossing::Pelican {go_time,..} => *go_time
         }
     }
@@ -125,7 +127,7 @@ mod tests {
     #[test]
     fn test_arrive_to_stop_zebra() {
         let test_zebra = Crossing::zebra(25.0);
-        assert_eq!(test_zebra.arrival_to_stop_time(), Duration::from_secs(0));
+        assert_eq!(test_zebra.arrival_to_stop_time(), TimeDelta::from(0));
     }
 
     #[test]
@@ -144,8 +146,8 @@ mod tests {
     #[test]
     fn test_road_get_crossings() {
         let test_road = Road { length: 20.0f32,
-            crossings: vec![Crossing::Zebra { position: 10.0f32, cross_time: Duration::from_secs_f32(25.0f32) }] };
-        assert_eq!(test_road.get_crossings(), &[Crossing::Zebra { position: 10.0f32, cross_time: Duration::from_secs_f32(25.0f32)}]);
+            crossings: vec![Crossing::Zebra { position: 10.0f32, cross_time: TimeDelta::from_secs(25) }] };
+        assert_eq!(test_road.get_crossings(), &[Crossing::Zebra { position: 10.0f32, cross_time: TimeDelta::from_secs(25)}]);
     }
 
 

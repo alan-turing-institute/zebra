@@ -1,17 +1,19 @@
 
 use std::convert::Into;
 
+use serde::{Serialize, Deserialize};
+
 
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TimeDelta(i64);
 
 const TIME_RESOLUTION: i64 = 1000;
 
 impl TimeDelta {
 
-    pub fn new(millis: i64) -> TimeDelta { TimeDelta(time) }
+    pub fn new(millis: i64) -> TimeDelta { TimeDelta(millis) }
     pub fn from_secs(secs: i64) -> TimeDelta { TimeDelta(secs * TIME_RESOLUTION) }
 }
 
