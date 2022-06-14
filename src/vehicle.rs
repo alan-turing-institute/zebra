@@ -78,6 +78,11 @@ const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3;
 const DECCELERATION_VALUE: f32 = -4;
 
+const CROSSING_TIME: Duration = Duration::from_secs(10);
+const WAIT_TIME: Duration = Duration::from_secs(5);
+const GO_TIME: Duration = Duration::from_secs(5);
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
