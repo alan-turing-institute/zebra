@@ -43,6 +43,12 @@ impl<'a> SimulatorState<'a> {
 
         SimulatorState {vehicles: Vec::new(), pedestrians: Vec::new(), timestamp: 0}
     }
+
+    // Construct a state with arbitrary content
+    fn dummy(vehicles: Vec<Box<dyn Vehicle>>, pedestrians: Vec<Pedestrian<'a>>, timestamp: Time) -> SimulatorState<'a> {
+        
+        SimulatorState{vehicles, pedestrians, timestamp}
+    }
 }
 
 impl<'a> State for SimulatorState<'a> {
@@ -106,12 +112,42 @@ mod tests {
 
         let state = SimulatorState::new();
 
-    	// Min is in ped_arrival_times
-        let ped_arrival_times = vec!(10, 20);
-        let veh_arrival_times = vec!(12, 21);
+        let ped_arrival_times = vec!(10000, 20000);
+        let veh_arrival_times = vec!(12000, 21000);
 
         let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
-        assert_eq!(actual, TimeDelta::new(10));
+
+        assert_eq!(actual, TimeDelta::new(10000));
+
+    }
+
+    #[test]
+    fn test_vehicle_arrival_event() {
+
+        let state = SimulatorState::new();
+
+        let ped_arrival_times = vec!(5000, 7000);
+        let veh_arrival_times = vec!(4000, 15000);
+
+        let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
+
+        assert_eq!(actual, TimeDelta::new(4000));
+
+    }
+
+    #[test]
+    fn test_vehicle_stopping_event() {
+
+        let vehicles = vec!(Vehicle.new());
+
+        let state = SimulatorState::dummy();
+
+        let ped_arrival_times = vec!(5000, 7000);
+        let veh_arrival_times = vec!(4000, 15000);
+
+        let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
+
+        assert_eq!(actual, TimeDelta::new(4000));
 
         // Min is in veh_arrival_times
         let ped_arrival_times = vec!(10, 20);
