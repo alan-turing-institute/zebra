@@ -4,7 +4,7 @@ use std::convert::Into;
 
 
 #[repr(transparent)]
-#[derive()]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TimeDelta(i64);
 
 const TIME_RESOLUTION: i64 = 1000;
@@ -29,6 +29,14 @@ impl From<i32> for TimeDelta {
 
 impl From<f32> for TimeDelta {
     fn from(secs: f32) -> Self {
-        todo!()
+        TimeDelta(f32::round(secs * (TIME_RESOLUTION as f32)) as i64)
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+
+
 }
