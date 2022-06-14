@@ -63,13 +63,17 @@ impl Vehicle for Car {
         let position = self.position;
         let speed = self.speed;
         let acceleration = self.acceleration;
-    
-        let seconds = duration.as_secs();
+        let seconds = duration.as_secs(); // TODO this is broken
         
         self.speed = speed + acceleration * seconds;
-        self.position = position + (0.5 * acceleration * seconds * seconds);
 
-        assert!(speed <= MAX_SPEED);
+        if acceleration == 0 {
+            self.position = position + self.speed * seconds;
+        } else {
+            self.position = position + (0.5 * acceleration * seconds * seconds);
+        }
+
+        assert!(self.speed <= MAX_SPEED);
 
     }
 }
@@ -98,6 +102,18 @@ mod tests {
         let test_car = Car{length: 4.0};
         assert_eq!(test_car.length(),4.0);
     }
+
+    // Test cases for roll forwards
+    // Position = 0, acceleration = 0, speed = 0
+    // Position = 0, acceleration = +3, speed = 0
+    // Position = 0, acceleration = -4, speed = 0
+    // Position = 0, acceleration = 0, speed = 10
+    // Position = 0, acceleration = +3, speed = 10
+    // Position = 0, acceleration = -4, speed = 10
+
+    // Tests for the Controller(?)
+    // Don't deccelerate when speed is 0
+    // Don't accelerate if at the speed limit
 
 
 }
