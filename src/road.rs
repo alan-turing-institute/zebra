@@ -20,9 +20,9 @@ pub enum Crossing {
     }
 }
 
-const CROSSING_TIME: TimeDelta = TimeDelta::from(10);
-const WAIT_TIME: TimeDelta = TimeDelta::from(5);
-const GO_TIME: TimeDelta = TimeDelta::from(5);
+const CROSSING_TIME: TimeDelta = TimeDelta::from_secs(10);
+const WAIT_TIME: TimeDelta = TimeDelta::from_secs(5);
+const GO_TIME: TimeDelta = TimeDelta::from_secs(5);
 
 impl Crossing {
 
