@@ -37,6 +37,12 @@ impl From<i32> for TimeDelta {
     }
 }
 
+impl From<i64> for TimeDelta {
+    fn from(arg: i64) -> Self {
+         TimeDelta(arg as Time)
+    }
+}
+
 impl From<f32> for TimeDelta {
     fn from(secs: f32) -> Self {
         TimeDelta(f32::round(secs * (TIME_RESOLUTION as f32)) as Time)
