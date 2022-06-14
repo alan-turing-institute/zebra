@@ -7,11 +7,11 @@ use std::convert::Into;
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TimeDelta(i64);
 
-const TIME_RESOLUTION: i64 = 1000;
+pub const TIME_RESOLUTION: i64 = 1000;
 
 impl TimeDelta {
 
-    pub fn new(millis: i64) -> TimeDelta { TimeDelta(time) }
+    pub fn new(millis: i64) -> TimeDelta { TimeDelta(millis) }
     pub fn from_secs(secs: i64) -> TimeDelta { TimeDelta(secs * TIME_RESOLUTION) }
 }
 
