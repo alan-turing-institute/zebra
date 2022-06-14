@@ -66,10 +66,11 @@ impl Vehicle for Car {
     
         let seconds = duration.as_secs();
         
-        speed = speed + acceleration * seconds;
-        position = position + (0.5 * acceleration * seconds * seconds);
+        self.speed = speed + acceleration * seconds;
+        self.position = position + (0.5 * acceleration * seconds * seconds);
 
         assert!(speed < MAX_SPEED);
+
     }
 }
 
