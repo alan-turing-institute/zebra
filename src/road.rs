@@ -1,5 +1,4 @@
 
-use std::fmt;
 use std::time::{Duration};
 use serde::{Serialize, Deserialize};
 
@@ -40,6 +39,33 @@ impl Crossing {
         }
     }
 
+    pub fn get_position(&self) -> Length {
+        match self {
+            Crossing::Zebra { position , ..} => *position,
+            Crossing::Pelican { position, ..} => *position
+        }
+    }
+
+    pub fn stop_time(&self) -> Duration {
+        match self {
+            Crossing::Zebra {cross_time, ..} => *cross_time,
+            Crossing::Pelican { stop_time, ..} => *stop_time
+        }
+    }
+
+    pub fn arrival_to_stop_time(&self) -> Duration {
+        match self {
+            Crossing::Zebra {..} => Duration::from_secs(0),
+            Crossing::Pelican {wait_time, ..} => *wait_time
+        }
+    }
+
+    pub fn min_time_to_next_stop(&self) -> Duration {
+        match self {
+            Crossing::Zebra {..} => Duration::from_secs(0),
+            Crossing::Pelican {go_time,..} => *go_time
+        }
+    }
 
 }
 
@@ -71,6 +97,42 @@ impl Road {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_get_position_zebra() {
+        let test_zebra = Crossing::zebra(25.0);
+        assert_eq!(test_zebra.get_position(), 25.0f32);
+    }
+
+    #[test]
+    fn test_get_position_pelican() {
+        let test_pelican = Crossing::pelican(25.0);
+        assert_eq!(test_pelican.get_position(), 25.0f32);
+    }
+
+    #[test]
+    fn test_stop_time_zebra() {
+        let test_zebra = Crossing::zebra(25.0);
+        assert_eq!(test_zebra.stop_time(), CROSSING_TIME);
+    }
+
+    #[test]
+    fn test_stop_time_pelican() {
+        let test_pelican = Crossing::pelican(25.0);
+        assert_eq!(test_pelican.stop_time(), CROSSING_TIME);
+    }
+
+    #[test]
+    fn test_arrive_to_stop_zebra() {
+        let test_zebra = Crossing::zebra(25.0);
+        assert_eq!(test_zebra.arrival_to_stop_time(), Duration::from_secs(0));
+    }
+
+    #[test]
+    fn test_arrive_to_stop_pelican() {
+        let test_pelican = Crossing::pelican(25.0);
+        assert_eq!(test_pelican.arrival_to_stop_time(), WAIT_TIME);
+    }
 
 
     #[test]

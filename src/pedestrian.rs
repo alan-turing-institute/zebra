@@ -1,100 +1,69 @@
 use std::time::{Duration, Instant};
+use zebra::road::Crossing;
 
-// use main::Crossing;
+// Notes:
+// How long does a person take to cross the road?
+// 1. Person spawns at crossing at `arrival_time` e.g. t = t_a
+// 2. Wait for a time t_w
+// 3. Crossing at time t_a + t_w <=  t = t_a + t_w + t_c
 
-// mod main;
+// Actions:
+// A. Car must consider person on road between time:
+//    t_a + t_w  <= t < t_a + t_c
+// B. Car must consider  slowing down for person waiting at zebra:
+//    t_a <= t < t_w
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub enum Crossing {
-    Zebra(f32),
-    Pelican
-}
+// TODO: Sequence of pedestrians with arrival times need to be incorporated
+// into state struct. E.g. `generate_pedestrian()` to be implemented.
 
 pub trait Person {
-    fn location(&self) -> Crossing;
+    fn location(&self) -> &Crossing;
     fn arrival_time(&self) -> Instant;
 }
 
-// Sequence of pedestrians with arrival times 
-// generate_pedestrian() to be implemented for struct State
-
-pub struct Pedestrian { 
-    location: Crossing,
+pub struct Pedestrian<'a> {
+    location: &'a Crossing,
     arrival_time: Instant,
-    // timestamps: Vec <Instant>,
 }
 
-impl Person for Pedestrian {
-    // Sample location
-    // fn assign_location(&mut self) {
-    // 
-    // }
-    
-    fn location(&self) -> Crossing {
-	// Crossing::Zebra(0.0f32)
-	self.location
+impl Person for Pedestrian<'_> {
+    fn location(&self) -> &Crossing {
+        self.location
     }
-    
+
     fn arrival_time(&self) -> Instant {
-    // fn arrival_time(&self) -> Duration {
-	// Duration::new(1, 0)
-	self.arrival_time
+        self.arrival_time
     }
-
-    // fn depart_time(&self) -> Instant {
-    // // fn arrival_time(&self) -> Duration {
-    // 	// Duration::new(1, 0)
-    // 	Instant::now()
-    // }
-
 }
 
-// How long does a person take to cross the road?
-// 1. Person spawns at crossing at `arrival_time` e.g. t = t_a
-// 2. Wait or immediately start crossing
-// 3. Crossed after time t = t_a + t_c
-//
-// Actions:
-// A. Car must consider person on road between time:
-//    t_a <= t < t_a + t_c
-
+impl Pedestrian<'_> {
+    fn new(location: &Crossing, arrival_time: Instant) -> Pedestrian {
+        Pedestrian {
+            location,
+            arrival_time,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread::sleep;
-    
+
     #[test]
-    fn test_pedestrian_location(){
-        let test_pedestrian = Pedestrian {
-	    location: Crossing::Pelican,
-	    arrival_time: Instant::now()
-	};
-		
-        assert_eq!(test_pedestrian.location(), Crossing::Pelican);
+    fn test_pedestrian_location() {
+        let test_pelican = Crossing::pelican(25.0);
+        let test_pedestrian = Pedestrian::new(&test_pelican, Instant::now());
+        assert_eq!(test_pedestrian.location(), &test_pelican);
     }
 
     #[test]
-    fn test_pedestrian_zebra(){
-        let test_pedestrian = Pedestrian {
-	    location: Crossing::Zebra(0f32),
-	    arrival_time: Instant::now()
-	};
-		
-        assert_eq!(test_pedestrian.location(), Crossing::Zebra(0f32));
+    fn test_pedestrian_arrival() {
+        let test_zebra = Crossing::zebra(25.0);
+        let test_pedestrian = Pedestrian::new(&test_zebra, Instant::now());
+        let complete_time = test_pedestrian.arrival_time + test_zebra.stop_time();
+        assert_eq!(
+            test_pedestrian.arrival_time() + test_zebra.stop_time(),
+            complete_time
+        );
     }
-
-
-    #[test]
-    fn test_pedestrian_arrival(){
-        let test_pedestrian = Pedestrian {
-	    location: Crossing::Pelican,
-	    arrival_time: Instant::now()
-	};
-	
-	sleep(Duration::new(0, 10));
-	let new_now = Instant::now();
-        assert_ne!(test_pedestrian.arrival_time(), new_now);
-    }
-
 }
