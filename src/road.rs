@@ -87,6 +87,10 @@ pub struct Road {
 impl Road {
 
     pub fn new(length: Length, crossings: Vec<(Crossing, Position)>) -> Road {
+
+        for (_, position) in crossings.iter() {
+            assert!(0.0 <= *position && *position <= length);
+        }
         Road { length, crossings }
     }
 
@@ -147,6 +151,23 @@ mod tests {
         assert_eq!(test_pelican.arrival_to_stop_time(), WAIT_TIME);
     }
 
+    #[test]
+    fn test_road_constructor() {
+
+        Road::new(20.0f32, Vec::new());
+
+        let crossings = vec![(Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0)];
+        Road::new(20.0f32, crossings);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_road_constructor_panics() {
+
+        // Invalid crossing position.
+        let crossings = vec![(Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 30.0)];
+        Road::new(20.0f32, crossings);
+    }
 
     #[test]
     fn test_road_get_length() {
