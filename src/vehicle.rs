@@ -62,18 +62,18 @@ impl Vehicle for Car {
         match action {
         Action::Accelerate  => self.acceleration = ACCELERATION_VALUE,
         Action::Deccelerate => self.acceleration = DECCELERATION_VALUE,
-        Action::StaticSpeed => self.acceleration = 0};
+        Action::StaticSpeed => self.acceleration = 0.0};
     }
     
     fn roll_forward_by(&mut self, duration: Duration) {
         let position = self.position;
         let speed = self.speed;
         let acceleration = self.acceleration;
-        let seconds = duration.as_secs(); // TODO this is broken
+        let seconds = duration.as_secs_f32(); // TODO this is broken
         
         self.speed = speed + acceleration * seconds;
 
-        if acceleration == 0 {
+        if acceleration == 0.0 {
             self.position = position + self.speed * seconds;
         } else {
             self.position = position + (0.5 * acceleration * seconds * seconds);
@@ -86,8 +86,8 @@ impl Vehicle for Car {
 }
 
 const MAX_SPEED: f32 = 13.41;
-const ACCELERATION_VALUE: f32 = 3;
-const DECCELERATION_VALUE: f32 = -4;
+const ACCELERATION_VALUE: f32 = 3.0;
+const DECCELERATION_VALUE: f32 = -4.0;
 
 const CROSSING_TIME: Duration = Duration::from_secs(10);
 const WAIT_TIME: Duration = Duration::from_secs(5);
@@ -100,15 +100,34 @@ mod tests {
 
     #[test]
     fn test_car_postion(){
-        let test_car = Car{position: 0.0};
+        let test_car = Car::new(0.0);
         assert_eq!(test_car.get_position(), 0.0);
     }
 
     #[test]
-    fn test_car_length(){
-        let test_car = Car{length: 4.0};
-        assert_eq!(test_car.get_length(),4.0);
+    fn test_roll_forward_static(){
+        let mut test_car = Car::new(0.0);
+        test_car.action(Action::StaticSpeed);
+        test_car.roll_forward_by(Duration::new(5, 0));
+        assert_eq!(test_car.get_speed(), 0.0);
+        assert_eq!(test_car.get_position(), 0.0);
+        assert_eq!(test_car.get_acceleration(), 0.0);
     }
+
+    fn test_roll_forward_acceleration(){
+        let mut test_car = Car::new(0.0);
+        test_car.action(Action::Accelerate);
+
+        let test_secs = Duration::new(1, 0);
+        test_car.roll_forward_by(test_secs);
+        assert_eq!(test_car.get_speed(), test_secs.as_secs_f32() * test_car.get_acceleration());
+        assert!(test_car.get_position() > 0.0);
+        assert_eq!(test_car.get_acceleration(), 3.0);
+    }
+
+}
+
+
 
     // Test cases for roll forwards
     // Position = 0, acceleration = 0, speed = 0
@@ -122,5 +141,4 @@ mod tests {
     // Don't accelerate if at the speed limit
     // Stop deceleration when speed is 0
 
-}
 
