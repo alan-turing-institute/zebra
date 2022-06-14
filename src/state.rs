@@ -1,5 +1,4 @@
 use std::time::{Duration, Instant};
-use crate::road::Road;
 use crate::pedestrian::Pedestrian;
 use crate::Time;
 
@@ -9,15 +8,8 @@ trait Vehicle {
 
 trait State {
 
-    // const ROAD_LENGTH: f32;
-    // const CROSSINGS: Vec<Crossing>;
-
-
     // fn get_vehicles(&self) -> &[dyn Vehicle];
     fn timestamp(&self) -> Instant;
-
-    // get the road
-    fn get_road(&self) -> &Road; // **NOTE** return type changed.
 
     // get the list of vehicles
     fn get_vehicles(&self) -> &Vec<Box<dyn Vehicle>>;
@@ -37,30 +29,25 @@ trait State {
 }
 
 
-struct SimulatorState {
+struct SimulatorState<'a> {
 
-    road: Road,
     vehicles: Vec<Box<dyn Vehicle>>,
-    pedestrians: Vec<Pedestrian>,
+    pedestrians: Vec<Pedestrian<'a>>,
 }
 
-impl SimulatorState {
+impl<'a> SimulatorState<'a> {
 
     // Constructor for the initial state at time 0.
-    pub fn new(road: Road) -> SimulatorState {
+    pub fn new() -> SimulatorState<'a> {
 
-        SimulatorState {road, vehicles: Vec::new(), pedestrians: Vec::new()}
+        SimulatorState {vehicles: Vec::new(), pedestrians: Vec::new()}
     }
 }
 
-impl State for SimulatorState {
+impl<'a> State for SimulatorState<'a> {
 
     fn timestamp(&self) -> Instant {
         Instant::now()
-    }
-
-    fn get_road(&self) -> &Road {
-        &self.road
     }
 
     // get the list of vehicles
@@ -97,10 +84,7 @@ mod tests {
     #[test]
     fn test_simulator_state_constructor() {
 
-        let road = Road::new(20.0f32, Vec::new());
-        let state = SimulatorState::new(road);
-
-        assert_eq!(state.get_road().get_length(), 20.0f32);
+        let state = SimulatorState::new();
 
         // assert_eq!(state.timestamp(), 0.0); // Initial timestamp is zero.
 

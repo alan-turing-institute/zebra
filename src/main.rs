@@ -2,7 +2,7 @@ use zebra::*;
 
 use std::time::Instant;
 
-mod pedestrian;
+// mod pedestrian;
 
 // use zebra::pedestrian;
 

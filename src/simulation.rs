@@ -4,6 +4,7 @@ use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 
 use crate::Time;
+use crate::road::Road;
 
 struct Simulation {
 
@@ -16,7 +17,9 @@ struct Simulation {
     veh_arrival_rate: f32,
 
     pub ped_arrival_times: Vec<f32>,
-    pub veh_arrival_times: Vec<f32>
+    pub veh_arrival_times: Vec<f32>,
+
+    road: Road
 }
 
 impl Simulation {
@@ -25,7 +28,8 @@ impl Simulation {
         start_time: Time,
         end_time: Time,
         ped_arrival_rate: f32,
-        veh_arrival_rate: f32) -> Simulation {
+        veh_arrival_rate: f32,
+        road: Road) -> Simulation {
 
         assert!(end_time > start_time);
 
@@ -38,13 +42,14 @@ impl Simulation {
         let veh_arrival_times = arrival_times(&start_time, &end_time, veh_arrival_rate, &mut rng);
 
         let sim = Simulation {
-            seed: seed,
-            start_time: start_time,
-            end_time: end_time,
-            ped_arrival_rate: ped_arrival_rate,
-            veh_arrival_rate: veh_arrival_rate,
-            ped_arrival_times: ped_arrival_times,
-            veh_arrival_times: veh_arrival_times
+            seed,
+            start_time,
+            end_time,
+            ped_arrival_rate,
+            veh_arrival_rate,
+            ped_arrival_times,
+            veh_arrival_times,
+            road
         };
 
         // TODO. Construct initial (empty) state at time 0.
