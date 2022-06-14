@@ -61,9 +61,9 @@ mod tests {
     fn test_pedestrian_arrival() {
         let test_zebra = Crossing::zebra(25.0);
         let test_pedestrian = Pedestrian::new(&test_zebra, 0);
-        let complete_time = test_pedestrian.arrival_time + test_zebra.stop_time();
+        let complete_time = test_zebra.stop_time() + test_pedestrian.arrival_time;
         assert_eq!(
-            test_pedestrian.arrival_time() + test_zebra.stop_time(),
+            test_zebra.stop_time() + test_pedestrian.arrival_time,
             complete_time
         );
     }

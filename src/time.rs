@@ -11,7 +11,7 @@ use crate::{Time, Length, Speed, Acceleration};
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Copy)]
 pub struct TimeDelta(Time);
 
-const TIME_RESOLUTION: Time = 1000;
+pub const TIME_RESOLUTION: Time = 1000;
 
 impl TimeDelta {
 
