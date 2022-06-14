@@ -1,4 +1,5 @@
-use std::time::{Duration, Instant};
+// use std::time::{Duration, Instant};
+use crate::Time;
 use crate::road::Crossing;
 
 // Notes:
@@ -18,12 +19,12 @@ use crate::road::Crossing;
 
 pub trait Person {
     fn location(&self) -> &Crossing;
-    fn arrival_time(&self) -> Instant;
+    fn arrival_time(&self) -> Time;
 }
 
 pub struct Pedestrian<'a> {
     location: &'a Crossing,
-    arrival_time: Instant,
+    arrival_time: Time,
 }
 
 impl Person for Pedestrian<'_> {
@@ -31,13 +32,13 @@ impl Person for Pedestrian<'_> {
         self.location
     }
 
-    fn arrival_time(&self) -> Instant {
+    fn arrival_time(&self) -> Time {
         self.arrival_time
     }
 }
 
 impl Pedestrian<'_> {
-    fn new(location: &Crossing, arrival_time: Instant) -> Pedestrian {
+    fn new(location: &Crossing, arrival_time: Time) -> Pedestrian {
         Pedestrian {
             location,
             arrival_time,
@@ -52,14 +53,14 @@ mod tests {
     #[test]
     fn test_pedestrian_location() {
         let test_pelican = Crossing::pelican(25.0);
-        let test_pedestrian = Pedestrian::new(&test_pelican, Instant::now());
+	let test_pedestrian = Pedestrian::new(&test_pelican, 0);
         assert_eq!(test_pedestrian.location(), &test_pelican);
     }
 
     #[test]
     fn test_pedestrian_arrival() {
         let test_zebra = Crossing::zebra(25.0);
-        let test_pedestrian = Pedestrian::new(&test_zebra, Instant::now());
+        let test_pedestrian = Pedestrian::new(&test_zebra, 0);
         let complete_time = test_pedestrian.arrival_time + test_zebra.stop_time();
         assert_eq!(
             test_pedestrian.arrival_time() + test_zebra.stop_time(),
