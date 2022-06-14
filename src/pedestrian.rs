@@ -16,34 +16,33 @@ use zebra::road::Crossing;
 // TODO: Sequence of pedestrians with arrival times need to be incorporated
 // into state struct. E.g. `generate_pedestrian()` to be implemented.
 
-
 pub trait Person {
     fn location(&self) -> &Crossing;
     fn arrival_time(&self) -> Instant;
 }
 
-pub struct Pedestrian <'a> { 
+pub struct Pedestrian<'a> {
     location: &'a Crossing,
     arrival_time: Instant,
 }
 
-impl Person for Pedestrian <'_> {
-        
+impl Person for Pedestrian<'_> {
     fn location(&self) -> &Crossing {
-	self.location
-    }
-    
-    fn arrival_time(&self) -> Instant {
-	self.arrival_time
+        self.location
     }
 
+    fn arrival_time(&self) -> Instant {
+        self.arrival_time
+    }
 }
 
-impl Pedestrian <'_> {
+impl Pedestrian<'_> {
     fn new(location: &Crossing, arrival_time: Instant) -> Pedestrian {
-        Pedestrian { location, arrival_time }
+        Pedestrian {
+            location,
+            arrival_time,
+        }
     }
-
 }
 
 #[cfg(test)]
@@ -52,17 +51,19 @@ mod tests {
 
     #[test]
     fn test_pedestrian_location() {
-	let test_pelican = Crossing::pelican(25.0);
+        let test_pelican = Crossing::pelican(25.0);
         let test_pedestrian = Pedestrian::new(&test_pelican, Instant::now());
         assert_eq!(test_pedestrian.location(), &test_pelican);
     }
 
     #[test]
     fn test_pedestrian_arrival() {
-	let test_zebra = Crossing::zebra(25.0);
+        let test_zebra = Crossing::zebra(25.0);
         let test_pedestrian = Pedestrian::new(&test_zebra, Instant::now());
-	let complete_time = test_pedestrian.arrival_time + test_zebra.stop_time();
-	assert_eq!(test_pedestrian.arrival_time() + test_zebra.stop_time(), complete_time);
+        let complete_time = test_pedestrian.arrival_time + test_zebra.stop_time();
+        assert_eq!(
+            test_pedestrian.arrival_time() + test_zebra.stop_time(),
+            complete_time
+        );
     }
-
 }
