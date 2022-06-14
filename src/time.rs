@@ -4,14 +4,14 @@ use std::convert::Into;
 use serde::{Serialize, Deserialize};
 
 
-use crate::{Time, Length, Speed, Acceleration};
+use crate::{Time, Length, Speed}; // , Acceleration};
 
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Copy)]
 pub struct TimeDelta(Time);
 
-const TIME_RESOLUTION: Time = 1000;
+pub const TIME_RESOLUTION: Time = 1000;
 
 impl TimeDelta {
 
@@ -33,6 +33,12 @@ impl Into<f32> for TimeDelta {
 
 impl From<i32> for TimeDelta {
     fn from(arg: i32) -> Self {
+         TimeDelta(arg as Time)
+    }
+}
+
+impl From<i64> for TimeDelta {
+    fn from(arg: i64) -> Self {
          TimeDelta(arg as Time)
     }
 }
