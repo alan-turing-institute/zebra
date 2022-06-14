@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use zebra::road::Crossing;
+use crate::road::Crossing;
 
 // Notes:
 // How long does a person take to cross the road?
