@@ -3,7 +3,7 @@ use rand_distr::{Exp, Distribution};
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 
-use crate::state::Time;
+use crate::Time;
 
 struct Simulation {
 
@@ -62,8 +62,9 @@ fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng: &mu
 
     let mut ret = Vec::new();
     let mut t = start_time.clone();
-    while &t < end_time {
+    loop {
         t = t + interarrival_time(arrival_rate, rng);
+        if &t > end_time { break; }
         ret.push(t);
     }
     ret
@@ -94,7 +95,12 @@ mod tests {
         // Set the random seed.
         let mut rng = StdRng::seed_from_u64(147);
 
-        // With this seed, there are 3 arrivals in 10 seconds.
-        assert_eq!(arrival_times(&0.0, &10.0, 0.2, &mut rng).len(), 3);
+        // With this seed, there are 2 arrivals in 10 seconds.
+        let actual = arrival_times(&0.0, &10.0, 0.2, &mut rng);
+        assert_eq!(actual.len(), 2);
+
+        // TODO NEXT: FIX ERROR: "the trait bound `f32: Ord` is not satisfied"
+        // - Additional argument for using integer time?
+        // assert!(actual.iter().max().unwrap() <= &10.0);
     }
 }

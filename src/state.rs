@@ -1,12 +1,11 @@
 use std::time::{Duration, Instant};
 use crate::road::Road;
 use crate::pedestrian::Pedestrian;
+use crate::Time;
 
 trait Vehicle {
 
 }
-
-pub type Time = f32;
 
 trait State {
 
@@ -27,7 +26,7 @@ trait State {
     fn get_pedestrians(&self) ->  &Vec<Pedestrian>;
 
     // get time interval until next event
-    fn time_to_next_event(&self, ped_arrival_times: &Vec<Time>, veh_arrival_times: &Vec<Time>) -> Duration; // **NOTE** new parameters.
+    fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> Duration; // **NOTE** new parameters.
 
     // roll state forward by time interval
     fn roll_forward_by(&mut self, duration: Duration);
@@ -75,7 +74,7 @@ impl State for SimulatorState {
     }
 
     // get time interval until next event
-    fn time_to_next_event(&self, ped_arrival_times: &Vec<Time>, veh_arrival_times: &Vec<Time>) -> Duration {
+    fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> Duration {
         Duration::new(0, 0)
     }
 
