@@ -76,6 +76,65 @@ fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng: &mu
     ret
 }
 
+use crate::road::{GO_TIME, WAIT_TIME, CROSSING_TIME};
+
+// Function to convert a set of pelican arrival times to actual (zebra) crossing
+// times
+fn pelican_to_zebra(pel_times: &Vec<Time>) -> Vec<Time> {
+    // Get Time versions of deltas
+    let go_time: Time = GO_TIME.into();
+    let crossing_time: Time = CROSSING_TIME.into();
+    let wait_time: Time = WAIT_TIME.into();
+
+    // Make vector for zebra times
+    let mut zeb_times = Vec::<Time>::new();
+
+    // Initialise next and previous pelican crossing times
+    let mut next_crossing_time: Time = Time::from(-1);
+    let mut previous_crossing_time;
+
+    // Loop over pelican times
+    for &time in pel_times {
+	// Set next_crossing_time if none have occurred
+	if next_crossing_time == -1 {
+	    next_crossing_time = time;
+	}
+	else {
+	    // If arrival time is after the next crossing time, update
+	    if time > next_crossing_time {
+		// Store next_crossing_time into previous_crossing_time
+		previous_crossing_time = next_crossing_time;
+
+		// Get the difference of the next time to the previous time
+		let diff_from_previous = time - previous_crossing_time;
+
+		// ---
+		// TODO: check logic below
+		// If crossing in progress: previous + crossing_time and go_time
+		if diff_from_previous < crossing_time {
+		    next_crossing_time = previous_crossing_time + crossing_time + go_time;
+		}
+		else {
+		    // If next time is less than the required go time
+		    if (diff_from_previous < crossing_time + go_time) & (time + wait_time < previous_crossing_time + crossing_time + go_time) {
+			next_crossing_time = previous_crossing_time + crossing_time + go_time;
+		    }
+		    // Otherwise: time + wait_time
+		    else {
+			next_crossing_time = time + wait_time;
+		    }
+		}
+		// ---
+	    }
+	}
+	// Push new time to back
+	zeb_times.push(next_crossing_time);
+    }
+    zeb_times
+}
+
+
+
 fn interarrival_time(arrival_rate: f32, rng: &mut StdRng) -> Time {
     let exp = Exp::new(arrival_rate).unwrap(); // see https://docs.rs/rand_distr/0.2.1/rand_distr/struct.Exp.html
     f32::round(exp.sample(rng) * (TIME_RESOLUTION as f32)) as i64
@@ -108,5 +167,31 @@ mod tests {
         // TODO NEXT: FIX ERROR: "the trait bound `f32: Ord` is not satisfied"
         // - Additional argument for using integer time?
         // assert!(actual.iter().max().unwrap() <= &10.0);
+    }
+
+    #[test]
+    fn test_pelican_to_zebra() {
+	// Make pelican times
+	let pel: Vec<Time> = (1..10_000).step_by(2_000).map(|x| Time::from(x as i64)).collect();
+
+	// Convert to zebra times
+	let zeb: Vec<Time> = pelican_to_zebra(&pel);
+
+	// Make actual zebra times
+	// TODO: check what the correct times should be
+	let mut actual_zeb: Vec<Time> = Vec::new();
+	actual_zeb.push(Time::from(1));
+	actual_zeb.push(Time::from(15001));
+	actual_zeb.push(Time::from(15001));
+	actual_zeb.push(Time::from(15001));
+	actual_zeb.push(Time::from(15001));
+
+	// Print for viewing with: cargo test -- --nocapture
+	for (a, b) in pel.iter().zip(zeb.clone()) {
+	    println!("{}, {}", *a, b);
+	}
+
+	assert_eq!(actual_zeb.len(), zeb.len());
+	assert_eq!(actual_zeb.iter().zip(zeb).all(|(a, b)| *a == b), true);
     }
 }

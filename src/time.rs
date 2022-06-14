@@ -11,12 +11,24 @@ use crate::{Time, Length, Speed, Acceleration};
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Copy)]
 pub struct TimeDelta(Time);
 
-const TIME_RESOLUTION: Time = 1000;
+pub const TIME_RESOLUTION: Time = 1000;
 
 impl TimeDelta {
 
     pub const fn new(millis: Time) -> TimeDelta { TimeDelta(millis) }
     pub const fn from_secs(secs: Time) -> TimeDelta { TimeDelta(secs * TIME_RESOLUTION) }
+}
+
+impl Into<Time> for &TimeDelta {
+    fn into(self) -> Time {
+        self.0 as Time
+    }
+}
+
+impl Into<Time> for TimeDelta {
+    fn into(self) -> Time {
+        Into::<Time>::into(&self)
+    }
 }
 
 impl Into<f32> for &TimeDelta {
@@ -37,8 +49,8 @@ impl From<i32> for TimeDelta {
     }
 }
 
-impl From<i64> for TimeDelta {
-    fn from(arg: i64) -> Self {
+impl From<Time> for TimeDelta {
+    fn from(arg: Time) -> Self {
          TimeDelta(arg as Time)
     }
 }
