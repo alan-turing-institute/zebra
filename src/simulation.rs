@@ -95,21 +95,22 @@ fn pelican_to_zebra(pel_times: &Vec<Time>) -> Vec<Time> {
     let mut next_cross_time =  pel_times.first().unwrap() + wait_time;
     
     // Loop over pelican times
-    for &pel_time in pel_times {
+    for &arrival_time in pel_times {
 	// Store next_cross_time into previous_cross_time
 	let prev_cross_time: Time = next_cross_time;
 
 	// Get the difference of the next time to the previous time
-	let diff_from_previous = pel_time - prev_cross_time;
+	let diff_from_previous = arrival_time - prev_cross_time;
 
 	// If arrival time is after the next crossing time, update
-	if pel_time > next_cross_time {
+	if arrival_time > next_cross_time {
 	    next_cross_time = match diff_from_previous {
+		// If crossing in progress, then exactly (cross_time + go_time) after previous cross time
 		x if x < cross_time => prev_cross_time + cross_time + go_time,
-		_ => cmp::max(pel_time + wait_time, prev_cross_time + cross_time + go_time)
+		// Otherwise, max of (arrival_time + wait_time) and (prev_cross_time + cross_time + go_time)
+		_ => cmp::max(arrival_time + wait_time, prev_cross_time + cross_time + go_time)
 	    };
 	}
-
 	// Push new time to back
 	zeb_times.push(next_cross_time);
     }
