@@ -5,7 +5,7 @@ use std::convert::Into;
 use crate::Time;
 use crate::time::{TimeDelta, TIME_RESOLUTION};
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{Action, Vehicle, Car, DECELERATION_VALUE};
+use crate::vehicle::{Action, Vehicle, Car, ACCELERATION_VALUE, DECELERATION_VALUE, MAX_SPEED};
 use crate::road::{Road, Direction};
 use crate::state::{State, SimulatorState};
 
@@ -203,6 +203,22 @@ mod tests {
 
         let actual: TimeDelta = sim.time_to_next_event();
         assert_eq!(actual, TimeDelta::from((-1.0) * (speed / DECELERATION_VALUE)));
+    }
+
+    #[test]
+    fn test_vehicle_speed_limit_event() {
+
+        let speed = 10.0;
+        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(Car::new(Direction::Up, speed, Action::Accelerate)));
+
+        let timestamp = 11 * TIME_RESOLUTION;
+        let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
+
+        let mut sim = test_sim();
+        sim.set_state(Box::new(state));
+
+        let actual: TimeDelta = sim.time_to_next_event();
+        assert_eq!(actual, TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
 
     //
