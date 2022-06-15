@@ -1,7 +1,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::TimeDelta;
+use crate::{ID, TimeDelta};
 
 type Length = f32;
 type Position = Length;
@@ -15,9 +15,11 @@ pub enum Direction {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Crossing {
     Zebra {
+	id: ID, // unique identifier
         cross_time: TimeDelta
     },
     Pelican {
+	id: ID, // unique identifier
         stop_time: TimeDelta, // time traffic is stopped
         wait_time: TimeDelta, // time from pressing button to stop
         go_time: TimeDelta // min time traffic flow before a stop can occur
@@ -30,14 +32,15 @@ pub const GO_TIME: TimeDelta = TimeDelta::from_secs(5);
 
 impl Crossing {
 
-    pub fn zebra() -> Crossing
+    pub fn zebra(id: ID) -> Crossing
     {
-        Crossing::Zebra { cross_time: CROSSING_TIME}
+        Crossing::Zebra { id, cross_time: CROSSING_TIME}
     }
 
-    pub fn pelican() -> Crossing
+    pub fn pelican(id: ID) -> Crossing
     {
         Crossing::Pelican {
+	    id,
             stop_time: CROSSING_TIME,
             wait_time: WAIT_TIME,
             go_time: GO_TIME
@@ -102,25 +105,25 @@ mod tests {
 
     #[test]
     fn test_stop_time_zebra() {
-        let test_zebra = Crossing::zebra();
+        let test_zebra = Crossing::zebra(0);
         assert_eq!(test_zebra.stop_time(), CROSSING_TIME);
     }
 
     #[test]
     fn test_stop_time_pelican() {
-        let test_pelican = Crossing::pelican();
+        let test_pelican = Crossing::pelican(0);
         assert_eq!(test_pelican.stop_time(), CROSSING_TIME);
     }
 
     #[test]
     fn test_arrive_to_stop_zebra() {
-        let test_zebra = Crossing::zebra();
+        let test_zebra = Crossing::zebra(0);
         assert_eq!(test_zebra.arrival_to_stop_time(), TimeDelta::from(0));
     }
 
     #[test]
     fn test_arrive_to_stop_pelican() {
-        let test_pelican = Crossing::pelican();
+        let test_pelican = Crossing::pelican(0);
         assert_eq!(test_pelican.arrival_to_stop_time(), WAIT_TIME);
     }
 
@@ -129,7 +132,7 @@ mod tests {
 
         Road::new(20.0f32, Vec::new());
 
-        let crossings = vec![(Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0)];
+        let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0)];
         Road::new(20.0f32, crossings);
     }
 
@@ -138,7 +141,7 @@ mod tests {
     fn test_road_constructor_panics() {
 
         // Should panic due to invalid crossing position.
-        let crossings = vec![(Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 30.0)];
+        let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 30.0)];
         Road::new(20.0f32, crossings);
     }
 
@@ -151,9 +154,9 @@ mod tests {
     #[test]
     fn test_road_get_crossings() {
 
-        let crossings = vec![(Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0)];
+        let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0)];
         let road = Road { length: 20.0f32, crossings };
 
-        assert_eq!(road.get_crossings(), &[(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 10.0)]);
+        assert_eq!(road.get_crossings(), &[(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 10.0)]);
     }
 }

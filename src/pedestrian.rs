@@ -63,14 +63,14 @@ mod tests {
 
     #[test]
     fn test_pedestrian_location() {
-        let test_pelican = Crossing::pelican();
+        let test_pelican = Crossing::pelican(0);
 	    let test_pedestrian = Pedestrian::new(0, &test_pelican, 0);
         assert_eq!(test_pedestrian.location(), &test_pelican);
     }
 
     #[test]
     fn test_pedestrian_arrival() {
-        let test_zebra = Crossing::zebra();
+        let test_zebra = Crossing::zebra(0);
 	    let arrival_time = 0;
         let test_pedestrian = Pedestrian::new(0, &test_zebra, arrival_time);
         let exit_time = test_zebra.stop_time() + test_pedestrian.arrival_time;
