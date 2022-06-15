@@ -93,7 +93,7 @@ impl Road {
         self.length
     }
 
-    pub fn get_crossings(&self, direction: Direction) -> &[(Crossing, Position)]
+    pub fn get_crossings(&self, direction: &Direction) -> &[(Crossing, Position)]
     {
 	match direction {
 	    Direction::Up => &self.crossings_up,

@@ -23,7 +23,7 @@ pub trait Vehicle {
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
-    fn next_crossing(&self, road: &Road) -> Option<(Crossing, f32)>;
+    fn next_crossing(&self, road: &Road) -> Option<(&Crossing, &f32)>;
 }
 
 pub struct Car {
@@ -90,18 +90,18 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
-    fn next_crossing(&self, road: &Road) -> Option<(Crossing, f32)>{
+    fn next_crossing(&self, road: &Road) -> Option<(&Crossing, &f32)>{
         
-        let pairs = road.get_crossings(self.direction);
-        let next_crossing: Crossing;
-        let next_position: f32;
-        let minimum_distance: f32 = std::f32::INFINITY;
+        let pairs = road.get_crossings(&self.direction);
+        let mut next_crossing: &Crossing;
+        let mut next_position: &f32;
+        let mut minimum_distance: f32 = std::f32::INFINITY;
         for (cross, pos) in pairs {
-            let distance = (*pos - self.position).abs();
-            if distance < minimum_distance && *pos > self.position {
+            let distance = (pos - self.position).abs();
+            if distance < minimum_distance && pos > &self.position {
                 minimum_distance = distance;
-                next_position = *pos;
-                next_crossing = *cross;
+                next_position = pos;
+                next_crossing = cross;
             }
 
         }
