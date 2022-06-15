@@ -2,7 +2,7 @@ use crate::pedestrian::Pedestrian;
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car};
-
+use crate::road::Direction;
 trait State {
 
     // fn get_vehicles(&self) -> &[dyn Vehicle];
@@ -137,7 +137,7 @@ mod tests {
     #[test]
     fn test_vehicle_stopping_event() {
 
-        let vehicles = vec!(Car::new(0.0));
+        let vehicles = vec!(Car::new(0.0,Direction::Up));
 
         // TODO.
         // let state = SimulatorState::dummy();

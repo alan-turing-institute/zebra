@@ -1,6 +1,7 @@
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
+use crate::road::Direction;
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -12,9 +13,11 @@ enum Action {
     StaticSpeed
 }
 
+
 pub trait Vehicle {
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
+    fn get_direction(&self) -> Direction;
     fn get_position(&self) -> f32;
     fn get_speed(&self) -> f32;
     fn get_acceleration(&self) -> f32;
@@ -25,6 +28,7 @@ pub trait Vehicle {
 pub struct Car {
     length: f32,
     buffer_zone: f32,
+    direction: Direction,
     position: f32,
     speed: f32,
     acceleration: f32,
@@ -32,8 +36,9 @@ pub struct Car {
 }
 
 impl Car {
-    pub fn new(position: f32) -> Car {
+    pub fn new(position: f32, direction: Direction) -> Car {
         Car { position,
+              direction,
               length: 4.0f32,
               buffer_zone: 1.0f32,
               speed: 0.0f32,
@@ -50,6 +55,11 @@ impl Vehicle for Car {
     fn get_buffer_zone(&self) -> f32 {
         self.buffer_zone
     }
+
+    fn get_direction(&self) -> Direction {
+        self.direction
+    }
+
     fn get_position(&self) -> f32 {
         self.position
     }
@@ -91,13 +101,19 @@ mod tests {
 
     #[test]
     fn test_car_postion(){
-        let test_car = Car::new(0.0);
+        let test_car = Car::new(0.0,Direction::Up);
         assert_eq!(test_car.get_position(), 0.0);
     }
 
     #[test]
+    fn test_car_direction(){
+        let test_car = Car::new(0.0,Direction::Up);
+        matches!(test_car.get_direction(), Direction::Up);
+    }
+
+    #[test]
     fn test_roll_forward_static(){
-        let mut test_car = Car::new(0.0);
+        let mut test_car = Car::new(0.0,Direction::Up);
         test_car.action(Action::StaticSpeed);
         test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
@@ -106,7 +122,7 @@ mod tests {
     }
 
     fn test_roll_forward_acceleration(){
-        let mut test_car = Car::new(0.0);
+        let mut test_car = Car::new(0.0,Direction::Up);
         test_car.action(Action::Accelerate);
 
         let mut test_secs = TimeDelta::new(1000);
