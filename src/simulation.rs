@@ -1,10 +1,10 @@
-
+use std::cmp;
 use rand_distr::{Exp, Distribution};
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 
 use crate::Time;
-use crate::road::Road;
+use crate::road::{GO_TIME, WAIT_TIME, CROSSING_TIME, Road};
 use crate::time::TIME_RESOLUTION;
 
 pub struct Simulation {
@@ -76,64 +76,45 @@ fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng: &mu
     ret
 }
 
-use crate::road::{GO_TIME, WAIT_TIME, CROSSING_TIME};
+
 
 // Function to convert a set of pelican arrival times to actual (zebra) crossing
 // times
 fn pelican_to_zebra(pel_times: &Vec<Time>) -> Vec<Time> {
     // Get Time versions of deltas
     let go_time: Time = GO_TIME.into();
-    let crossing_time: Time = CROSSING_TIME.into();
+    let cross_time: Time = CROSSING_TIME.into();
     let wait_time: Time = WAIT_TIME.into();
 
+    // println!("go:{}, cross:{}, wait:{}", go_time, cross_time, wait_time);
+    
     // Make vector for zebra times
     let mut zeb_times = Vec::<Time>::new();
 
     // Initialise next and previous pelican crossing times
-    let mut next_crossing_time: Time = Time::from(-1);
-    let mut previous_crossing_time;
-
+    let mut next_cross_time =  pel_times.first().unwrap() + wait_time;
+    
     // Loop over pelican times
-    for &time in pel_times {
-	// Set next_crossing_time if none have occurred
-	if next_crossing_time == -1 {
-	    next_crossing_time = time;
-	}
-	else {
-	    // If arrival time is after the next crossing time, update
-	    if time > next_crossing_time {
-		// Store next_crossing_time into previous_crossing_time
-		previous_crossing_time = next_crossing_time;
+    for &pel_time in pel_times {
+	// Store next_cross_time into previous_cross_time
+	let prev_cross_time: Time = next_cross_time;
 
-		// Get the difference of the next time to the previous time
-		let diff_from_previous = time - previous_crossing_time;
+	// Get the difference of the next time to the previous time
+	let diff_from_previous = pel_time - prev_cross_time;
 
-		// ---
-		// TODO: check logic below
-		// If crossing in progress: previous + crossing_time and go_time
-		if diff_from_previous < crossing_time {
-		    next_crossing_time = previous_crossing_time + crossing_time + go_time;
-		}
-		else {
-		    // If next time is less than the required go time
-		    if (diff_from_previous < crossing_time + go_time) & (time + wait_time < previous_crossing_time + crossing_time + go_time) {
-			next_crossing_time = previous_crossing_time + crossing_time + go_time;
-		    }
-		    // Otherwise: time + wait_time
-		    else {
-			next_crossing_time = time + wait_time;
-		    }
-		}
-		// ---
-	    }
+	// If arrival time is after the next crossing time, update
+	if pel_time > next_cross_time {
+	    next_cross_time = match diff_from_previous {
+		x if x < cross_time => prev_cross_time + cross_time + go_time,
+		_ => cmp::max(pel_time + wait_time, prev_cross_time + cross_time + go_time)
+	    };
 	}
+
 	// Push new time to back
-	zeb_times.push(next_crossing_time);
+	zeb_times.push(next_cross_time);
     }
     zeb_times
 }
-
-
 
 fn interarrival_time(arrival_rate: f32, rng: &mut StdRng) -> Time {
     let exp = Exp::new(arrival_rate).unwrap(); // see https://docs.rs/rand_distr/0.2.1/rand_distr/struct.Exp.html
@@ -172,26 +153,23 @@ mod tests {
     #[test]
     fn test_pelican_to_zebra() {
 	// Make pelican times
-	let pel: Vec<Time> = (1..10_000).step_by(2_000).map(|x| Time::from(x as i64)).collect();
-
-	// Convert to zebra times
-	let zeb: Vec<Time> = pelican_to_zebra(&pel);
+	let actual_pel: Vec<Time> = vec![1, 2,  9, 12, 14, 17, 21, 22, 60].iter().map(|x| Time::from(x * TIME_RESOLUTION)).collect();
 
 	// Make actual zebra times
-	// TODO: check what the correct times should be
-	let mut actual_zeb: Vec<Time> = Vec::new();
-	actual_zeb.push(Time::from(1));
-	actual_zeb.push(Time::from(15001));
-	actual_zeb.push(Time::from(15001));
-	actual_zeb.push(Time::from(15001));
-	actual_zeb.push(Time::from(15001));
+	let actual_zeb: Vec<Time> = vec![6, 6, 21, 21, 21, 21, 21, 36, 65].iter().map(|x| Time::from(x * TIME_RESOLUTION)).collect();
+
+	// Convert to zebra times
+	let zeb: Vec<Time> = pelican_to_zebra(&actual_pel);
+
 
 	// Print for viewing with: cargo test -- --nocapture
-	for (a, b) in pel.iter().zip(zeb.clone()) {
+	for (a, b) in actual_pel.iter().zip(zeb.clone()) {
 	    println!("{}, {}", *a, b);
 	}
-
+	
 	assert_eq!(actual_zeb.len(), zeb.len());
 	assert_eq!(actual_zeb.iter().zip(zeb).all(|(a, b)| *a == b), true);
     }
+
+    // TODO: write additional tests for pelican_to_zebra()
 }
