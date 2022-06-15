@@ -5,6 +5,7 @@ mod state;
 mod pedestrian;
 mod vehicle;
 mod simulation;
+mod event_driven_sim;
 
 pub use time::TimeDelta;
 
