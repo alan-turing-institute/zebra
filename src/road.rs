@@ -6,6 +6,7 @@ use crate::TimeDelta;
 type Length = f32;
 type Position = Length;
 
+#[derive(Copy,Clone)]
 pub enum Direction {
     Up,
     Down
