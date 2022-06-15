@@ -132,7 +132,7 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
 
         let mut test_secs = TimeDelta::new(1000);
         test_car.roll_forward_by(test_secs);
-        
+
         let seconds: f32 = test_secs.into();
         assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
 
@@ -143,7 +143,7 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
         } else if matches!(init_action, Action::Deccelerate){
             assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
         }
-        
+
 }
 
 mod tests {
@@ -197,5 +197,3 @@ mod tests {
     // Don't deccelerate when speed is 0
     // Don't accelerate if at the speed limit
     // Stop deceleration when speed is 0
-
-

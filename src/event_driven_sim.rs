@@ -1,10 +1,12 @@
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
+use crate::events::{Event, EventResult, EventType};
+use crate::pedestrian::Person;
 
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{Vehicle, Car};
+use crate::vehicle::{Vehicle, Car, Action};
 use crate::road::Road;
 use crate::state::{State, SimulatorState};
 
@@ -80,6 +82,12 @@ impl EventDrivenSim {
     // pub fn current_state() -> State {
 
     // }
+
+    fn new_vehicle(&mut self) -> &dyn Vehicle { todo!() }
+    fn new_pedestrian(&mut self) -> &dyn Person { todo!() }
+    fn remove_vehicle(&mut self, vehicle: &dyn Vehicle) { todo!() }
+    fn remove_pedestrian(&mut self, pedestrian: &dyn Person) { todo!() }
+
 }
 
 impl Simulation for EventDrivenSim {
@@ -106,6 +114,43 @@ impl Simulation for EventDrivenSim {
     // update state
     fn instantaneous_update(&mut self) {
 
+    }
+
+    fn handle_event(&mut self, event: Event<'_>) -> EventResult<'_> {
+        use EventType::*;
+        match event.1 {
+            VehicleArrival => {
+                EventResult::NewVehicle(self.new_vehicle())
+            }
+            VehicleExit(vehicle) => {
+                self.remove_vehicle(vehicle);
+                EventResult::RemoveVehicle
+            }
+            SpeedLimitReached(vehicle) => {
+                vehicle.action(Action::StaticSpeed);
+                EventResult::VehicleChange(vehicle)
+            }
+            ZeroSpeedReached(vehicle) => {
+                vehicle.action(Action::StaticSpeed);
+                EventResult::VehicleChange(vehicle)
+            }
+            ReactionToObstacle(vehicle) => {
+                EventResult::VehicleChange(vehicle)
+            }
+            PedestrianArrival => {
+                EventResult::NewPedestrian(self.new_pedestrian())
+            }
+            PedestrianExit(person) => {
+                EventResult::RemovePedestrian
+            }
+            LightsToRed(crossing) => {
+                EventResult::CrossingChange(crossing)
+            }
+            LightsToGreen(crossing) => {
+                EventResult::CrossingChange(crossing)
+            }
+            _ => unreachable!()
+        }
     }
 }
 
