@@ -3,7 +3,8 @@ use crate::Time;
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car};
 use crate::road::Direction;
-trait State {
+
+pub trait State {
 
     // fn get_vehicles(&self) -> &[dyn Vehicle];
     fn timestamp(&self) -> &Time;

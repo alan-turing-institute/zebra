@@ -2,6 +2,7 @@ use crate::Time;
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
 use crate::road::Direction;
+use crate::state::State;
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -23,6 +24,7 @@ pub trait Vehicle {
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
+    fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
 pub struct Car {
@@ -93,6 +95,29 @@ impl Vehicle for Car {
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
     }
+
+    fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
+
+        let my_direction = &self.get_direction();
+        if vehicles.len() == 0 {
+            return Option::None
+        }
+        for vehicle in vehicles {
+            // Ignore vehicles going in the other direction.
+            if matches!(vehicle.get_direction(), my_direction) {
+                continue;
+            }
+            // TODO. TEST &/or FIX THIS!
+            // WARNING!!
+            // This assumes vehicles are ordered by increasing position.
+            // But they might not be!
+            if &vehicle.get_position() < &self.get_position() {
+                continue;
+            }
+            return Option::Some(vehicle)
+        }
+        Option::None
+    }
 }
 
 #[cfg(test)]
@@ -134,6 +159,8 @@ mod tests {
         assert!(test_car.get_position() > 0.0);
         assert_eq!(test_car.get_acceleration(), 3.0);
     }
+
+    // IMP TODO: Test next_vehicle()
 
 }
 
