@@ -19,6 +19,18 @@ impl TimeDelta {
     pub const fn from_secs(secs: Time) -> TimeDelta { TimeDelta(secs * TIME_RESOLUTION) }
 }
 
+impl Into<Time> for &TimeDelta {
+    fn into(self) -> Time {
+        self.0 as Time
+    }
+}
+
+impl Into<Time> for TimeDelta {
+    fn into(self) -> Time {
+        Into::<Time>::into(&self)
+    }
+}
+
 impl Into<f32> for &TimeDelta {
     fn into(self) -> f32 {
         self.0 as f32 / TIME_RESOLUTION as f32
@@ -37,8 +49,8 @@ impl From<i32> for TimeDelta {
     }
 }
 
-impl From<i64> for TimeDelta {
-    fn from(arg: i64) -> Self {
+impl From<Time> for TimeDelta {
+    fn from(arg: Time) -> Self {
          TimeDelta(arg as Time)
     }
 }
