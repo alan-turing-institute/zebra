@@ -30,6 +30,15 @@ pub const CROSSING_TIME: TimeDelta = TimeDelta::from_secs(10);
 pub const WAIT_TIME: TimeDelta = TimeDelta::from_secs(5);
 pub const GO_TIME: TimeDelta = TimeDelta::from_secs(5);
 
+// TODO: update once config is implemented and can be loaded from
+pub fn generate_crossings() -> Vec<(Crossing, Position)> {
+    let mut crossings: Vec<(Crossing, Position)> = Vec::new();
+    crossings.push((Crossing::pelican(0), 100.0));
+    crossings.push((Crossing::zebra(1), 500.0));
+    crossings.push((Crossing::pelican(2), 800.0));
+    crossings
+}
+
 impl Crossing {
 
     pub fn zebra(id: ID) -> Crossing
@@ -119,6 +128,16 @@ impl Road {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_generate_crossings() {
+        let test_crossings = generate_crossings();
+        assert_eq!(&test_crossings, &[
+            (Crossing::pelican(0), 100.0),
+            (Crossing::zebra(1), 500.0),
+            (Crossing::pelican(2), 800.0),
+        ]);
+    }
 
     #[test]
     fn test_stop_time_zebra() {
