@@ -4,9 +4,9 @@ use crate::time::TIME_RESOLUTION;
 use crate::road::Direction;
 use crate::state::State;
 
-const MAX_SPEED: f32 = 13.41;
-const ACCELERATION_VALUE: f32 = 3.0;
-const DECCELERATION_VALUE: f32 = -4.0;
+pub const MAX_SPEED: f32 = 13.41;
+pub const ACCELERATION_VALUE: f32 = 3.0;
+pub const DECCELERATION_VALUE: f32 = -4.0;
 
 #[derive(Copy,Clone)]
 pub enum Action {

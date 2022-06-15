@@ -19,6 +19,7 @@ pub enum EventType<'a> {
     LightsToRed(&'a mut Crossing),
     LightsToGreen(&'a mut Crossing),
 
+    StopSimulation
 }
 
 

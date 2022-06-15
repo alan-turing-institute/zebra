@@ -1,3 +1,4 @@
+use core::ffi::c_int;
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 use crate::events::{Event, EventResult, EventType};
@@ -6,7 +7,7 @@ use crate::pedestrian::Person;
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{Vehicle, Car, Action};
+use crate::vehicle::{self, Vehicle, Car, Action};
 use crate::road::Road;
 use crate::state::{State, SimulatorState};
 
@@ -21,7 +22,9 @@ pub struct EventDrivenSim {
     veh_arrival_rate: f32,
 
     pub ped_arrival_times: Vec<Time>,
+    ped_arrival_idx: usize,
     pub veh_arrival_times: Vec<Time>,
+    veh_arrival_idx: usize,
 
     road: Road,
     state: Box<dyn State>
@@ -58,7 +61,9 @@ impl EventDrivenSim {
             ped_arrival_rate,
             veh_arrival_rate,
             ped_arrival_times,
+            ped_arrival_idx: 0,
             veh_arrival_times,
+            veh_arrival_idx: 0,
             road,
             state
         };
@@ -96,14 +101,38 @@ impl Simulation for EventDrivenSim {
     fn time_to_next_event(&self) -> TimeDelta {
 
         // get min of pedestrian and vehicle arrival times
-        let min_ped_times = self.ped_arrival_times.iter().min().unwrap();
-        let min_veh_times = self.veh_arrival_times.iter().min().unwrap();
+        // let min_ped_times = self.ped_arrival_times.iter().min().unwrap();
+        // let min_veh_times = self.veh_arrival_times.iter().min().unwrap();
 
-        // return the smallest of the two times as the next event
-        if min_veh_times < min_ped_times {
-            return TimeDelta::new(*min_veh_times);
+        let curr_time = *self.state.timestamp();
+        let mut events= vec![self.end_time];
+
+        if let Some(&arrival_time) = self.ped_arrival_times.get(self.ped_arrival_idx+1) {
+            events.push(arrival_time);
         }
-        TimeDelta::new(*min_ped_times)
+        if let Some(&arrival_time) = self.veh_arrival_times.get(self.veh_arrival_idx+1) {
+            events.push(arrival_time);
+        }
+
+        let curr_vehicles = self.state.get_vehicles();
+        for vehicle in curr_vehicles {
+            let accel = vehicle.get_acceleration();
+            if accel > 0.0 {
+                let speed_delta = vehicle::MAX_SPEED - vehicle.get_speed();
+                let t_delta = TimeDelta::from(speed_delta / accel);
+                events.push(curr_time + t_delta);
+            } else if accel < 0.0 {
+                let t_delta = TimeDelta::from(vehicle.get_speed() / -vehicle.get_acceleration());
+                events.push(curr_time + t_delta);
+            }
+
+            // Logic to check for obstacle events
+
+        }
+
+        // This is infallible since the vector always contains the termination time
+        let min_time = events.iter().min().unwrap();
+        TimeDelta::from(min_time - curr_time)
     }
 
     // roll state forward by time interval
@@ -148,6 +177,9 @@ impl Simulation for EventDrivenSim {
             }
             LightsToGreen(crossing) => {
                 EventResult::CrossingChange(crossing)
+            }
+            StopSimulation => {
+
             }
             _ => unreachable!()
         }
