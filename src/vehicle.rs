@@ -159,6 +159,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_get_car_id(){
+        let test_car = Car::new(1, Direction::Up, 13.0,Action::Accelerate);
+        assert_eq!(test_car.get_id(), 1);
+    }
+
+    #[test]
     fn test_car_postion(){
         let test_car = Car::new(0, Direction::Up, 13.0,Action::Accelerate);
         assert_eq!(test_car.get_position(), 0.0);
