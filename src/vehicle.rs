@@ -6,7 +6,7 @@ const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
 const DECCELERATION_VALUE: f32 = -4.0;
 
-enum Action {
+pub enum Action {
     Accelerate,
     Deccelerate,
     StaticSpeed
@@ -134,5 +134,3 @@ mod tests {
     // Don't deccelerate when speed is 0
     // Don't accelerate if at the speed limit
     // Stop deceleration when speed is 0
-
-

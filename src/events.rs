@@ -8,23 +8,28 @@ use std::cmp::{Ord, Eq, Ordering};
 #[non_exhaustive]
 pub enum EventType<'a> {
     VehicleArrival,
-    VehicleExit(&'a dyn Vehicle),
-    SpeedLimitReached(&'a dyn Vehicle),
-    ZeroSpeedReached(&'a dyn Vehicle),
-    ReactionToObstacle(&'a dyn Vehicle),
+    VehicleExit(&'a mut dyn Vehicle),
+    SpeedLimitReached(&'a mut  dyn Vehicle),
+    ZeroSpeedReached(&'a mut dyn Vehicle),
+    ReactionToObstacle(&'a mut dyn Vehicle),
 
     PedestrianArrival,
-    PedestrianExit(&'a dyn Person),
+    PedestrianExit(&'a mut dyn Person),
 
-    LightsToRed(&'a Crossing),
-    LightsToGreen(&'a Crossing),
+    LightsToRed(&'a mut Crossing),
+    LightsToGreen(&'a mut Crossing),
 
 }
 
 
 pub enum EventResult<'a> {
+    NewVehicle(&'a dyn Vehicle),
+    RemoveVehicle,
     VehicleChange(&'a dyn Vehicle),
+    NewPedestrian(&'a dyn Person),
+    RemovePedestrian,
     PedestrianChange(&'a dyn Person),
+    CrossingChange(&'a Crossing),
     NoEffect
 }
 
