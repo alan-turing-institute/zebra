@@ -38,8 +38,6 @@ pub struct Car {
     position: f32,
     speed: f32,
     acceleration: f32,
-    direction: Direction,
-
 }
 
 impl Car {
@@ -119,12 +117,13 @@ impl Vehicle for Car {
             }
 
         }
-
+    
         if minimum_distance == std::f32::INFINITY {
             Option::None
         } else {
             Option::Some((next_crossing, next_position))
-        }        
+        }   
+    }     
         
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
