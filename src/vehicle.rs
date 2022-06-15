@@ -7,6 +7,7 @@ const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
 const DECCELERATION_VALUE: f32 = -4.0;
 
+#[derive(Copy,Clone)]
 pub enum Action {
     Accelerate,
     Deccelerate,
@@ -96,9 +97,32 @@ impl Vehicle for Car {
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
     }
+
+
 }
 
+
 #[cfg(test)]
+
+fn spawn_car_take_action(init_action:Action, init_speed:f32){
+    let mut test_car = Car::new(Direction::Up, init_speed,init_action);
+
+        let mut test_secs = TimeDelta::new(1000);
+        test_car.roll_forward_by(test_secs);
+        
+        let seconds: f32 = test_secs.into();
+        assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
+
+        assert!(test_car.get_position() > 0.0);
+
+        if matches!(init_action, Action::Accelerate){
+            assert_eq!(test_car.get_acceleration(), ACCELERATION_VALUE);
+        } else if matches!(init_action, Action::Deccelerate){
+            assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
+        }
+        
+}
+
 mod tests {
     use super::*;
 
@@ -124,20 +148,15 @@ mod tests {
         assert_eq!(test_car.get_acceleration(), 0.0);
     }
 
+    #[test]
     fn test_roll_forward_acceleration(){
-        let mut test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
-        test_car.action(Action::Accelerate);
-
-        let mut test_secs = TimeDelta::new(1000);
-        test_car.roll_forward_by(test_secs);
-        // assert_eq!(test_car.get_speed(), (test_secs as f32) * test_car.get_acceleration());
-
-        let seconds: f32 = test_secs.into();
-        assert_eq!(test_car.get_speed(), seconds * test_car.get_acceleration());
-        assert!(test_car.get_position() > 0.0);
-        assert_eq!(test_car.get_acceleration(), 3.0);
+        spawn_car_take_action(Action::Accelerate, 0.0);
     }
 
+    #[test]
+    fn test_roll_forward_deceleration(){
+        spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
+    }
 }
 
 
