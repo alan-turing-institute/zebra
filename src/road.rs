@@ -47,6 +47,13 @@ impl Crossing {
         }
     }
 
+    pub fn get_id(&self) -> ID {
+	match self {
+            Crossing::Zebra {id, ..} => *id,
+            Crossing::Pelican { id, ..} => *id
+        }
+    }
+
     pub fn stop_time(&self) -> TimeDelta {
         match self {
             Crossing::Zebra {cross_time, ..} => *cross_time,
@@ -159,6 +166,14 @@ mod tests {
     fn test_road_get_length() {
         let test_road = Road::new(20.0f32, Vec::new());
         assert_eq!(test_road.get_length(), 20.0f32);
+    }
+
+    #[test]
+    fn test_crossing_get_id() {
+        let test_pelican = Crossing::pelican(0);
+	assert_eq!(test_pelican.get_id(), 0);
+	let test_zebra = Crossing::zebra(1);
+        assert_eq!(test_zebra.get_id(), 1);
     }
 
     #[test]
