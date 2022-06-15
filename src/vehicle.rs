@@ -18,12 +18,13 @@ enum Action {
 pub trait Vehicle {
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
+    fn get_direction(&self) -> Direction;
     fn get_position(&self) -> f32;
     fn get_speed(&self) -> f32;
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
-    fn next_crossing(&self, road: &Road) -> Option<(&Crossing, &f32)>;
+    fn next_crossing<'a>(&self, road: &'a Road) -> Option<(&'a Crossing, &f32)>;
 }
 
 pub struct Car {
@@ -56,6 +57,11 @@ impl Vehicle for Car {
     fn get_buffer_zone(&self) -> f32 {
         self.buffer_zone
     }
+
+    fn get_direction(&self) -> Direction {
+        self.direction
+    }
+
     fn get_position(&self) -> f32 {
         self.position
     }
@@ -90,15 +96,15 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
-    fn next_crossing(&self, road: &Road) -> Option<(&Crossing, &f32)>{
+    fn next_crossing<'a>(&self, road: &'a Road) -> Option<(&'a Crossing, &f32)>{
         
-        let pairs = road.get_crossings(&self.direction);
+        let pairs = road.get_crossings(&self.get_direction());
         let mut next_crossing: &Crossing;
         let mut next_position: &f32;
         let mut minimum_distance: f32 = std::f32::INFINITY;
         for (cross, pos) in pairs {
-            let distance = (pos - self.position).abs();
-            if distance < minimum_distance && pos > &self.position {
+            let distance = (pos - self.get_position()).abs();
+            if distance < minimum_distance && pos > &self.get_position() {
                 minimum_distance = distance;
                 next_position = pos;
                 next_crossing = cross;
