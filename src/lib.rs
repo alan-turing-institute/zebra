@@ -4,6 +4,7 @@ mod road;
 mod state;
 mod pedestrian;
 mod vehicle;
+mod obstacle;
 mod simulation;
 mod event_driven_sim;
 

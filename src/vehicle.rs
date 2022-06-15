@@ -1,8 +1,8 @@
 use crate::Time;
-use crate::time::TimeDelta;
-use crate::time::TIME_RESOLUTION;
+use crate::time::{TimeDelta,TIME_RESOLUTION};
 use crate::road::Direction;
 use crate::state::State;
+use crate::obstacle::Obstacle;
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -16,12 +16,10 @@ pub enum Action {
 }
 
 
-pub trait Vehicle {
+pub trait Vehicle : Obstacle {
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
-    fn get_position(&self) -> f32;
-    fn get_speed(&self) -> f32;
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
@@ -53,6 +51,18 @@ impl Car {
     }
 }
 
+
+impl Obstacle for Car{
+
+    fn get_position(&self) -> f32 {
+        self.position
+    }
+
+    fn get_speed(&self) -> f32 {
+        self.speed
+    }
+}
+
 impl Vehicle for Car {
 
     fn get_length(&self) -> f32 {
@@ -64,14 +74,6 @@ impl Vehicle for Car {
 
     fn get_direction(&self) -> Direction {
         self.direction
-    }
-
-    fn get_position(&self) -> f32 {
-        self.position
-    }
-
-    fn get_speed(&self) -> f32 {
-        self.speed
     }
 
     fn get_acceleration(&self) -> f32 {
@@ -123,7 +125,6 @@ impl Vehicle for Car {
         Option::None
     }
 }
-
 
 #[cfg(test)]
 
@@ -182,8 +183,14 @@ mod tests {
     fn test_roll_forward_deceleration(){
         spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
     }
-}
 
+
+    #[test]
+    fn test_car_as_obstacle(){
+
+        
+    }
+}
 
 
     // Test cases for roll forwards

@@ -95,7 +95,6 @@ impl Road {
 }
 
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
