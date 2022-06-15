@@ -4,7 +4,7 @@ use std::convert::Into;
 use serde::{Serialize, Deserialize};
 
 
-use crate::{Time, Length, Speed, Acceleration};
+use crate::{Time, Length, Speed}; // , Acceleration};
 
 
 #[repr(transparent)]

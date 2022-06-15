@@ -7,7 +7,7 @@ use crate::Time;
 use crate::road::Road;
 use crate::time::TIME_RESOLUTION;
 
-struct Simulation {
+pub struct Simulation {
 
     seed: u64,
 
@@ -161,12 +161,12 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(147);
 
         // With this seed, there are 2 arrivals in 10 seconds.
-        let actual = arrival_times(&0, &10, 0.2, &mut rng);
+        let end_time = 10 * TIME_RESOLUTION;
+        let actual = arrival_times(&0, &end_time, 0.2, &mut rng);
         assert_eq!(actual.len(), 2);
 
-        // TODO NEXT: FIX ERROR: "the trait bound `f32: Ord` is not satisfied"
-        // - Additional argument for using integer time?
-        // assert!(actual.iter().max().unwrap() <= &10.0);
+        // Check that all arrivals occur before the simulation end time.
+        assert!(actual.iter().max().unwrap() <= &end_time);
     }
 
     #[test]
