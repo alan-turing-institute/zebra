@@ -27,6 +27,11 @@ lazy_static!(
 );
 
 
+pub fn get_zebra_config() -> &ZebraConfig {
+    &ZEBRA_CONFIG
+}
+
+
 /// Configuration settings specific to the simulation
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct SimulationConfig {
