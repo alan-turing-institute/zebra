@@ -69,11 +69,11 @@ impl EventDrivenSim {
         self.state = state;
     }
 
-    fn set_ped_arrival_times(&mut self, ped_arrival_times: Vec<Time>) {
+    pub fn set_ped_arrival_times(&mut self, ped_arrival_times: Vec<Time>) {
         self.ped_arrival_times = ped_arrival_times;
     }
 
-    fn set_veh_arrival_times(&mut self, veh_arrival_times: Vec<Time>) {
+    pub fn set_veh_arrival_times(&mut self, veh_arrival_times: Vec<Time>) {
         self.veh_arrival_times = veh_arrival_times;
     }
 
@@ -106,6 +106,10 @@ impl Simulation for EventDrivenSim {
     // update state
     fn instantaneous_update(&mut self) {
 
+    }
+
+    fn get_state(&self) -> &Box<dyn State> {
+        self.state
     }
 }
 

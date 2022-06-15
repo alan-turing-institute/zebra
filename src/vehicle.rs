@@ -6,6 +6,7 @@ use crate::road::Road;
 use crate::road::Direction;
 use crate::state::State;
 use crate::event_driven_sim::EventDrivenSim;
+use crate::simulation::Simulation;
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -229,7 +230,7 @@ mod tests {
         sim.set_ped_arrival_times(ped_arrival_times);
         sim.set_veh_arrival_times(veh_arrival_times);
 
-        let next_data = sim.state.get_vehicles()[0].next_crossing(road);
+        let next_data = sim.get_state().get_vehicles()[0].next_crossing(&road);
         assert_eq!(next_data.0, crossings[0]);
         assert_eq!(next_data.1, 10.0);
 

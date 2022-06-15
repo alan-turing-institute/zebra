@@ -22,6 +22,8 @@ pub trait Simulation {
     // update simulation state
     fn instantaneous_update(&mut self);
 
+    fn get_state(&self);
+
 }
 
 // MOVED TO EventDrivenSim
