@@ -1,4 +1,4 @@
-use crate::Time;
+use crate::{Time, ID};
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
 use crate::road::Direction;
@@ -17,6 +17,8 @@ pub enum Action {
 
 
 pub trait Vehicle {
+    fn get_id(&self) -> ID;
+    fn set_id(&mut self, id: ID);
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
@@ -29,23 +31,25 @@ pub trait Vehicle {
 }
 
 pub struct Car {
+    id: ID,
     length: f32,
     buffer_zone: f32,
     direction: Direction,
     position: f32,
     speed: f32,
     acceleration: f32,
-
 }
 
 impl Car {
-    pub fn new(direction: Direction, speed: f32, action: Action) -> Car {
-       let mut car = Car { position: 0.0f32,
-              length: 4.0f32,
-              buffer_zone: 1.0f32,
-              direction,
-              speed,
-              acceleration: 0.0f32,
+    pub fn new(id: ID, direction: Direction, speed: f32, action: Action) -> Car {
+	let mut car = Car {
+	    id: id,
+	    position: 0.0f32,
+            length: 4.0f32,
+            buffer_zone: 1.0f32,
+            direction,
+            speed,
+            acceleration: 0.0f32,
         };
 
         car.action(action);
@@ -54,7 +58,12 @@ impl Car {
 }
 
 impl Vehicle for Car {
-
+    fn set_id(&mut self, id: ID) {
+	self.id = id;
+    }
+    fn get_id(&self) -> ID {
+	self.id
+    }
     fn get_length(&self) -> f32 {
        self.length
     }
@@ -128,7 +137,7 @@ impl Vehicle for Car {
 #[cfg(test)]
 
 fn spawn_car_take_action(init_action:Action, init_speed:f32){
-    let mut test_car = Car::new(Direction::Up, init_speed,init_action);
+    let mut test_car = Car::new(0, Direction::Up, init_speed,init_action);
 
         let mut test_secs = TimeDelta::new(1000);
         test_car.roll_forward_by(test_secs);
@@ -151,19 +160,19 @@ mod tests {
 
     #[test]
     fn test_car_postion(){
-        let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
+        let test_car = Car::new(0, Direction::Up, 13.0,Action::Accelerate);
         assert_eq!(test_car.get_position(), 0.0);
     }
 
     #[test]
     fn test_car_direction(){
-        let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
+        let test_car = Car::new(0, Direction::Up, 13.0,Action::Accelerate);
         matches!(test_car.get_direction(), Direction::Up);
     }
 
     #[test]
     fn test_roll_forward_static(){
-        let mut test_car = Car::new(Direction::Up, 0.0,Action::Accelerate);
+        let mut test_car = Car::new(0, Direction::Up, 0.0,Action::Accelerate);
         test_car.action(Action::StaticSpeed);
         test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
