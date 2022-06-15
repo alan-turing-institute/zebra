@@ -169,7 +169,7 @@ mod tests {
 
 	let direction = Direction::Up;
         assert_eq!(
-	    road.get_crossings(direction),
+	    road.get_crossings(&direction),
 	    &[
 		(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 10.0),
 		(Crossing::Zebra { cross_time: TimeDelta::from_secs(10)}, 13.0),
@@ -177,7 +177,7 @@ mod tests {
 
 	let direction = Direction::Down;
         assert_eq!(
-	    road.get_crossings(direction),
+	    road.get_crossings(&direction),
 	    &[
 		(Crossing::Zebra { cross_time: TimeDelta::from_secs(10)}, 17.0),
 		(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 20.0),

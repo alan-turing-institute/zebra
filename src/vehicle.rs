@@ -27,7 +27,7 @@ pub trait Vehicle {
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
-    fn next_crossing<'a>(&self, road: &'a Road) -> Option<(&'a Crossing, &f32)>;
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>;
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
@@ -102,26 +102,28 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
-    fn next_crossing<'a>(&self, road: &'a Road) -> Option<(&'a Crossing, &f32)>{
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>{
         
-        let pairs = road.get_crossings(&self.get_direction());
-        let mut next_crossing: &Crossing;
-        let mut next_position: &f32;
+        let pairs = road.get_crossings(&self.get_direction());  
         let mut minimum_distance: f32 = std::f32::INFINITY;
-        for (cross, pos) in pairs {
-            let distance = (pos - self.get_position()).abs();
-            if distance < minimum_distance && pos > &self.get_position() {
+        let mut next_c: &Crossing = &pairs[0].0;
+        let mut next_p: &f32 = &pairs[0].1;
+        let mut distance: f32 = (next_p - self.get_position()).abs();
+        let mut minimum_distance: f32 = distance;
+        
+        for (cross, pos) in &pairs[1..] {
+            next_p = pos;
+            next_c = cross;
+            distance = (pos - self.get_position()).abs();
+            if distance < minimum_distance && pos > &self.get_position() {                
                 minimum_distance = distance;
-                next_position = pos;
-                next_crossing = cross;
             }
-
         }
     
         if minimum_distance == std::f32::INFINITY {
             Option::None
         } else {
-            Option::Some((next_crossing, next_position))
+            Option::Some((next_c, next_p))
         }   
     }     
         
