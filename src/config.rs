@@ -27,7 +27,7 @@ lazy_static!(
 );
 
 
-pub fn get_zebra_config() -> &ZebraConfig {
+pub fn get_zebra_config() -> &'static ZebraConfig {
     &ZEBRA_CONFIG
 }
 
