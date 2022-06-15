@@ -159,13 +159,26 @@ mod tests {
     #[test]
     fn test_road_get_crossings() {
 
-        let crossings = vec![(Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0)];
+        let crossings = vec![
+	    (Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0),
+	    (Crossing::Zebra { cross_time: TimeDelta::from_secs(10) }, 13.0),
+	];
         let road = Road::new(30.0f32, crossings);
 
 	let direction = Direction::Up;
-        assert_eq!(road.get_crossings(direction), &[(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 10.0)]);
+        assert_eq!(
+	    road.get_crossings(direction),
+	    &[
+		(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 10.0),
+		(Crossing::Zebra { cross_time: TimeDelta::from_secs(10)}, 13.0),
+	    ]);
 
 	let direction = Direction::Down;
-        assert_eq!(road.get_crossings(direction), &[(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 20.0)]);
+        assert_eq!(
+	    road.get_crossings(direction),
+	    &[
+		(Crossing::Zebra { cross_time: TimeDelta::from_secs(10)}, 17.0),
+		(Crossing::Zebra { cross_time: TimeDelta::from_secs(25)}, 20.0),
+	    ]);
     }
 }
