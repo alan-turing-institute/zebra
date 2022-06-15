@@ -8,7 +8,8 @@ const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
 const DECCELERATION_VALUE: f32 = -4.0;
 
-enum Action {
+#[derive(Copy,Clone)]
+pub enum Action {
     Accelerate,
     Deccelerate,
     StaticSpeed
@@ -38,14 +39,17 @@ pub struct Car {
 }
 
 impl Car {
-    pub fn new(position: f32, direction: Direction) -> Car {
-        Car { position,
-              direction,
+    pub fn new(direction: Direction, speed: f32, action: Action) -> Car {
+       let mut car = Car { position: 0.0f32,
               length: 4.0f32,
               buffer_zone: 1.0f32,
-              speed: 0.0f32,
-              acceleration: 0.0f32
-        }
+              direction,
+              speed,
+              acceleration: 0.0f32,
+        };
+
+        car.action(action);
+        car
     }
 }
 
@@ -120,25 +124,46 @@ impl Vehicle for Car {
     }
 }
 
+
 #[cfg(test)]
+
+fn spawn_car_take_action(init_action:Action, init_speed:f32){
+    let mut test_car = Car::new(Direction::Up, init_speed,init_action);
+
+        let mut test_secs = TimeDelta::new(1000);
+        test_car.roll_forward_by(test_secs);
+        
+        let seconds: f32 = test_secs.into();
+        assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
+
+        assert!(test_car.get_position() > 0.0);
+
+        if matches!(init_action, Action::Accelerate){
+            assert_eq!(test_car.get_acceleration(), ACCELERATION_VALUE);
+        } else if matches!(init_action, Action::Deccelerate){
+            assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
+        }
+        
+}
+
 mod tests {
     use super::*;
 
     #[test]
     fn test_car_postion(){
-        let test_car = Car::new(0.0,Direction::Up);
+        let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
         assert_eq!(test_car.get_position(), 0.0);
     }
 
     #[test]
     fn test_car_direction(){
-        let test_car = Car::new(0.0,Direction::Up);
+        let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
         matches!(test_car.get_direction(), Direction::Up);
     }
 
     #[test]
     fn test_roll_forward_static(){
-        let mut test_car = Car::new(0.0,Direction::Up);
+        let mut test_car = Car::new(Direction::Up, 0.0,Action::Accelerate);
         test_car.action(Action::StaticSpeed);
         test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
@@ -146,22 +171,17 @@ mod tests {
         assert_eq!(test_car.get_acceleration(), 0.0);
     }
 
+    #[test]
     fn test_roll_forward_acceleration(){
-        let mut test_car = Car::new(0.0,Direction::Up);
-        test_car.action(Action::Accelerate);
-
-        let mut test_secs = TimeDelta::new(1000);
-        test_car.roll_forward_by(test_secs);
-        // assert_eq!(test_car.get_speed(), (test_secs as f32) * test_car.get_acceleration());
-
-        let seconds: f32 = test_secs.into();
-        assert_eq!(test_car.get_speed(), seconds * test_car.get_acceleration());
-        assert!(test_car.get_position() > 0.0);
-        assert_eq!(test_car.get_acceleration(), 3.0);
+        spawn_car_take_action(Action::Accelerate, 0.0);
     }
 
     // IMP TODO: Test next_vehicle()
 
+    #[test]
+    fn test_roll_forward_deceleration(){
+        spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
+    }
 }
 
 
