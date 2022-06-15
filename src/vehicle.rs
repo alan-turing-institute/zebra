@@ -4,14 +4,14 @@ use crate::time::TIME_RESOLUTION;
 use crate::road::Direction;
 use crate::state::State;
 
-const MAX_SPEED: f32 = 13.41;
-const ACCELERATION_VALUE: f32 = 3.0;
-const DECCELERATION_VALUE: f32 = -4.0;
+pub const MAX_SPEED: f32 = 13.41;
+pub const ACCELERATION_VALUE: f32 = 3.0;
+pub const DECELERATION_VALUE: f32 = -4.0;
 
 #[derive(Copy,Clone)]
 pub enum Action {
     Accelerate,
-    Deccelerate,
+    Decelerate,
     StaticSpeed
 }
 
@@ -81,7 +81,7 @@ impl Vehicle for Car {
     fn action(&mut self, action:Action) {
         match action {
             Action::Accelerate  => self.acceleration = ACCELERATION_VALUE,
-            Action::Deccelerate => self.acceleration = DECCELERATION_VALUE,
+            Action::Decelerate => self.acceleration = DECELERATION_VALUE,
             Action::StaticSpeed => self.acceleration = 0.0
         };
     }
@@ -132,7 +132,7 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
 
         let mut test_secs = TimeDelta::new(1000);
         test_car.roll_forward_by(test_secs);
-        
+
         let seconds: f32 = test_secs.into();
         assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
 
@@ -140,10 +140,10 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
 
         if matches!(init_action, Action::Accelerate){
             assert_eq!(test_car.get_acceleration(), ACCELERATION_VALUE);
-        } else if matches!(init_action, Action::Deccelerate){
-            assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
+        } else if matches!(init_action, Action::Decelerate){
+            assert_eq!(test_car.get_acceleration(), DECELERATION_VALUE);
         }
-        
+
 }
 
 mod tests {
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_roll_forward_deceleration(){
-        spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
+        spawn_car_take_action(Action::Decelerate, MAX_SPEED);
     }
 }
 
@@ -194,7 +194,7 @@ mod tests {
     // Position = 0, acceleration = -4, speed = 10
 
     // Tests for the Controller(?)
-    // Don't deccelerate when speed is 0
+    // Don't Decelerate when speed is 0
     // Don't accelerate if at the speed limit
     // Stop deceleration when speed is 0
 

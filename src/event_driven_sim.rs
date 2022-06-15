@@ -1,12 +1,14 @@
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
+use std::convert::Into;
 
 use crate::Time;
-use crate::time::TimeDelta;
+use crate::time::{TimeDelta, TIME_RESOLUTION};
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{Vehicle, Car};
-use crate::road::Road;
+use crate::vehicle::{Action, Vehicle, Car, DECELERATION_VALUE};
+use crate::road::{Road, Direction};
 use crate::state::{State, SimulatorState};
+
 
 pub struct EventDrivenSim {
 
@@ -190,11 +192,17 @@ mod tests {
     #[test]
     fn test_vehicle_stopping_event() {
 
-        // let vehicles = vec!(Car::new(0.0));
+        let speed = 10.0;
+        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(Car::new(Direction::Up, speed, Action::Decelerate)));
 
-        // TODO NEXT.
-        // let state = SimulatorState::dummy();
+        let timestamp = 22 * TIME_RESOLUTION;
+        let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
 
+        let mut sim = test_sim();
+        sim.set_state(Box::new(state));
+
+        let actual: TimeDelta = sim.time_to_next_event();
+        assert_eq!(actual, TimeDelta::from((-1.0) * (speed / DECELERATION_VALUE)));
     }
 
     //
