@@ -84,41 +84,4 @@ mod tests {
         assert_eq!(state.get_pedestrians().len(), 0); // No pedestrians
     }
 
-    #[test]
-    fn test_pedestrian_arrival_event() {
-
-        let state = SimulatorState::new();
-
-        let ped_arrival_times = vec!(10000, 20000);
-        let veh_arrival_times = vec!(12000, 21000);
-
-        let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
-
-        assert_eq!(actual, TimeDelta::new(10000));
-
-    }
-
-    #[test]
-    fn test_vehicle_arrival_event() {
-
-        let state = SimulatorState::new();
-
-        let ped_arrival_times = vec!(5000, 7000);
-        let veh_arrival_times = vec!(4000, 15000);
-
-        let actual = state.time_to_next_event(&ped_arrival_times, &veh_arrival_times);
-
-        assert_eq!(actual, TimeDelta::new(4000));
-
-    }
-
-    #[test]
-    fn test_vehicle_stopping_event() {
-
-        let vehicles = vec!(Car::new(Direction::Up, 13.0,Action::Accelerate));
-
-        // TODO.
-        // let state = SimulatorState::dummy();
-
-    }
 }
