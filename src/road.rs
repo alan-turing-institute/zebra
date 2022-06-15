@@ -74,6 +74,7 @@ pub struct Road {
 
 impl Road {
 
+    // Here the position of the crossings is assumed to be in the `Up` direction.
     pub fn new(length: Length, crossings: Vec<(Crossing, Position)>) -> Road {
 
         for (_, position) in crossings.iter() {
