@@ -91,14 +91,26 @@ impl Vehicle for Car {
     }
 
     fn next_crossing(&self, road: &Road) -> Option<(Crossing, f32)>{
-
-        struct Pair(Crossing, f32);
         
-        let crossings = road.get_crossings(self.direction);
-        let (cross, pos): (Vec<_>, Vec<_>) = crossings.into_iter().map(|Pair(a, b)| (a, b)).unzip();
-        let distances = pos - self.position;
-        let ind = distances.iter().enumerate().max_by(|&(_, item)| item);
-        (cross[ind], pos[ind])
+        let pairs = road.get_crossings(self.direction);
+        let next_crossing: Crossing;
+        let next_position: f32;
+        let minimum_distance: f32 = std::f32::INFINITY;
+        for (cross, pos) in pairs {
+            let distance = (*pos - self.position).abs();
+            if distance < minimum_distance && *pos > self.position {
+                minimum_distance = distance;
+                next_position = *pos;
+                next_crossing = *cross;
+            }
+
+        }
+
+        if minimum_distance == std::f32::INFINITY {
+            Option::None
+        } else {
+            Option::Some((next_crossing, next_position))
+        }        
         
     }
 }
