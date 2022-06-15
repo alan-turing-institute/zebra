@@ -5,6 +5,7 @@ use crate::road::Crossing;
 use crate::road::Road;
 use crate::road::Direction;
 use crate::state::State;
+use crate::event_driven_sim::EventDrivenSim;
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -208,6 +209,31 @@ mod tests {
     #[test]
     fn test_roll_forward_deceleration(){
         spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
+    }
+
+    #[test]
+    fn test_next_crossing(){
+
+        let crossings = vec![
+	        (Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0),
+	        (Crossing::Zebra { cross_time: TimeDelta::from_secs(10) }, 20.0),
+	    ];
+
+        let road = Road::new(30.0f32, crossings);
+
+        let sim = EventDrivenSim::new(122, 0, 60000, 0.1, 0.2, road);
+        
+        let ped_arrival_times = vec!(0);
+        let veh_arrival_times = vec!(0);
+
+        sim.set_ped_arrival_times(ped_arrival_times);
+        sim.set_veh_arrival_times(veh_arrival_times);
+
+        let next_data = sim.state.get_vehicles()[0].next_crossing(road);
+        assert_eq!(next_data.0, crossings[0]);
+        assert_eq!(next_data.1, 10.0);
+
+
     }
 }
 
