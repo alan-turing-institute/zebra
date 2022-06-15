@@ -1,7 +1,9 @@
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
-use crate::road::Crossing
+use crate::road::Crossing;
+use crate::road::Road;
+use crate::road::Direction;
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -21,7 +23,7 @@ pub trait Vehicle {
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
-    fn next_crossing(&self, road: &Road) -> Crossing
+    fn next_crossing(&self, road: &Road) -> Option<(Crossing, f32)>;
 }
 
 pub struct Car {
@@ -30,6 +32,7 @@ pub struct Car {
     position: f32,
     speed: f32,
     acceleration: f32,
+    direction: Direction,
 
 }
 
@@ -39,7 +42,8 @@ impl Car {
               length: 4.0f32,
               buffer_zone: 1.0f32,
               speed: 0.0f32,
-              acceleration: 0.0f32
+              acceleration: 0.0f32,
+              direction: Direction::Up
         }
     }
 }
@@ -86,13 +90,15 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
-    fn next_crossing(&self, road: &Road){
+    fn next_crossing(&self, road: &Road) -> Option<(Crossing, f32)>{
+
+        struct Pair(Crossing, f32);
         
         let crossings = road.get_crossings(self.direction);
         let (cross, pos): (Vec<_>, Vec<_>) = crossings.into_iter().map(|Pair(a, b)| (a, b)).unzip();
-        let distances = pos - self.position 
-        index = distances.iter().enumerate().max_by(|&(_, item)| item)
-        cross[index]
+        let distances = pos - self.position;
+        let ind = distances.iter().enumerate().max_by(|&(_, item)| item);
+        (cross[ind], pos[ind])
         
     }
 }
