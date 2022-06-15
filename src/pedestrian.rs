@@ -1,4 +1,4 @@
-use crate::Time;
+use crate::{Time, ID};
 use crate::road::{Crossing, CROSSING_TIME};
 
 // Notes:
@@ -17,11 +17,14 @@ use crate::road::{Crossing, CROSSING_TIME};
 // into state struct. E.g. `generate_pedestrian()` to be implemented.
 
 pub trait Person {
+    fn set_id(&mut self, id: ID);
+    fn get_id(&self) -> ID;
     fn location(&self) -> &Crossing;
     fn arrival_time(&self) -> Time;
 }
 
 pub struct Pedestrian<'a> {
+    id: ID,
     location: &'a Crossing,
     arrival_time: Time,
 }
@@ -34,11 +37,20 @@ impl Person for Pedestrian<'_> {
     fn arrival_time(&self) -> Time {
         self.arrival_time
     }
+
+    fn set_id(&mut self, id: ID) {
+	self.id = id;
+    }
+
+    fn get_id(&self) -> ID {
+	self.id
+    }
 }
 
 impl Pedestrian<'_> {
-    fn new(location: &Crossing, arrival_time: Time) -> Pedestrian {
+    fn new(id: ID, location: &Crossing, arrival_time: Time) -> Pedestrian {
         Pedestrian {
+	    id,
             location,
             arrival_time,
         }
@@ -52,7 +64,7 @@ mod tests {
     #[test]
     fn test_pedestrian_location() {
         let test_pelican = Crossing::pelican();
-	    let test_pedestrian = Pedestrian::new(&test_pelican, 0);
+	    let test_pedestrian = Pedestrian::new(0, &test_pelican, 0);
         assert_eq!(test_pedestrian.location(), &test_pelican);
     }
 
@@ -60,7 +72,7 @@ mod tests {
     fn test_pedestrian_arrival() {
         let test_zebra = Crossing::zebra();
 	    let arrival_time = 0;
-        let test_pedestrian = Pedestrian::new(&test_zebra, arrival_time);
+        let test_pedestrian = Pedestrian::new(0, &test_zebra, arrival_time);
         let exit_time = test_zebra.stop_time() + test_pedestrian.arrival_time;
 
         // Expect the exit time to be the arrival time plus the time taken to cross.
