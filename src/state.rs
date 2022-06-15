@@ -1,7 +1,8 @@
 use crate::pedestrian::Pedestrian;
 use crate::Time;
 use crate::time::TimeDelta;
-use crate::vehicle::{Vehicle, Car};
+use crate::vehicle::{Vehicle, Car, Action};
+use crate::road::Direction;
 
 pub trait State {
 
@@ -82,4 +83,5 @@ mod tests {
         assert_eq!(state.get_vehicles().len(), 0); // No vehicles
         assert_eq!(state.get_pedestrians().len(), 0); // No pedestrians
     }
+
 }

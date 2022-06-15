@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn test_vehicle_stopping_event() {
 
-        let vehicles = vec!(Car::new(0.0));
+        // let vehicles = vec!(Car::new(0.0));
 
         // TODO NEXT.
         // let state = SimulatorState::dummy();
