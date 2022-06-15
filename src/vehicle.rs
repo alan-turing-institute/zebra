@@ -1,6 +1,7 @@
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
+use crate::road::Crossing
 
 const MAX_SPEED: f32 = 13.41;
 const ACCELERATION_VALUE: f32 = 3.0;
@@ -20,6 +21,7 @@ pub trait Vehicle {
     fn get_acceleration(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
+    fn next_crossing(&self, road: &Road) -> Crossing
 }
 
 pub struct Car {
@@ -82,6 +84,16 @@ impl Vehicle for Car {
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
+    }
+
+    fn next_crossing(&self, road: &Road){
+        
+        let crossings = road.get_crossings(self.direction);
+        let (cross, pos): (Vec<_>, Vec<_>) = crossings.into_iter().map(|Pair(a, b)| (a, b)).unzip();
+        let distances = pos - self.position 
+        index = distances.iter().enumerate().max_by(|&(_, item)| item)
+        cross[index]
+        
     }
 }
 
