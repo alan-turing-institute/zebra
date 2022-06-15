@@ -3,6 +3,8 @@ use crate::Time;
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car, Action};
 use crate::road::Direction;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde_json::to_string as to_json;
 
 pub trait State {
 
@@ -27,13 +29,58 @@ pub trait State {
 
 }
 
-
 pub struct SimulatorState<'a> {
 
     vehicles: Vec<Box<dyn Vehicle>>,
     pedestrians: Vec<Pedestrian<'a>>,
     timestamp: Time
 }
+
+impl Serialize for SimulatorState <'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Number of fields in the struct and name.
+        let mut state = serializer.serialize_struct("State", 3)?;
+        state.serialize_field("timestamp", &self.timestamp)?;
+        state.serialize_field("pedestrians", &self.get_pedestrians())?;
+        // TODO: implement Serialize for vehicle trait if possible
+        // state.serialize_field("cars", &self.vehicles)?;
+        state.end()
+    }
+}
+
+// 1. New struct (SerializedState) to hold data at a given timestamp
+// 2. SerializedState.read(SimulatorState) 
+// 3. Annotate the owned data in SerializedState with #[derive(Serialize, Deserialize)]
+// How does serde handle dynamic objects?
+// #[derive(Serialize)]
+// pub struct SerializedState <'a> {
+//     // vehicles: Vec<Vehicle>,
+//     pedestrians: Vec<Pedestrian<'a>>,
+
+// }
+// ----
+// use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeMap};
+// use serde::ser::{Serializer, SerializeSeq, SerializeMap};
+// impl Serialize for Vec<Pedestrian<'a>>
+// // where
+// //T: Serialize,
+// {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let mut seq = serializer.serialize_seq(Some(self.len()))?;
+//         for e in self {
+//             seq.serialize_element(e)?;
+//         }
+//         seq.end()
+//     }
+// }
+
+// ----
 
 impl<'a> SimulatorState<'a> {
 
