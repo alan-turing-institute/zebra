@@ -12,7 +12,7 @@ pub enum Direction {
     Down
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Crossing {
     Zebra {
 	id: ID, // unique identifier
@@ -72,7 +72,8 @@ impl Crossing {
 
 pub struct Road {
     length: Length,
-    crossings: Vec<(Crossing, Position)>
+    crossings_up: Vec<(Crossing, Position)>,
+    crossings_down: Vec<(Crossing, Position)>
 }
 
 impl Road {
@@ -83,16 +84,25 @@ impl Road {
         for (_, position) in crossings.iter() {
             assert!(0.0 <= *position && *position <= length);
         }
-        Road { length, crossings }
+
+	let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
+	let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
+	for (crossing, position) in crossings.into_iter().rev() {
+	    crossings_down.push((crossing, length - position));
+	}
+        Road { length, crossings_up, crossings_down }
     }
 
     pub fn get_length(&self) -> Length {
         self.length
     }
 
-    pub fn get_crossings(&self) -> &[(Crossing, Position)]
+    pub fn get_crossings(&self, direction: Direction) -> &[(Crossing, Position)]
     {
-       &self.crossings
+	match direction {
+	    Direction::Up => &self.crossings_up,
+	    Direction::Down => &self.crossings_down 
+	}	
     }
 
 }
@@ -147,16 +157,32 @@ mod tests {
 
     #[test]
     fn test_road_get_length() {
-        let test_road = Road { length: 20.0f32, crossings: Vec::new() };
+        let test_road = Road::new(20.0f32, Vec::new());
         assert_eq!(test_road.get_length(), 20.0f32);
     }
 
     #[test]
     fn test_road_get_crossings() {
+        let crossings = vec![
+	    (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+	    (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+	];
+        let road = Road::new(30.0f32, crossings);
 
-        let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0)];
-        let road = Road { length: 20.0f32, crossings };
+	let direction = Direction::Up;
+        assert_eq!(
+	    road.get_crossings(direction),
+	    &[
+		(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 10.0),
+		(Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 13.0),
+	    ]);
 
-        assert_eq!(road.get_crossings(), &[(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 10.0)]);
+	let direction = Direction::Down;
+        assert_eq!(
+	    road.get_crossings(direction),
+	    &[
+		(Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 17.0),
+		(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 20.0),
+	    ]);
     }
 }
