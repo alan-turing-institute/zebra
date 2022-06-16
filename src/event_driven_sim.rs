@@ -151,24 +151,24 @@ impl Simulation for EventDrivenSim {
     // get time interval until next event
     fn next_event(&mut self) -> Event {
 
-        // get min of pedestrian and vehicle arrival times
-        // let min_ped_times = self.ped_arrival_times.iter().min().unwrap();
-        // let min_veh_times = self.veh_arrival_times.iter().min().unwrap();
-
         let curr_time = *self.state.timestamp();
         let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
+        // Pedestrian arrival events.
         if let Some(&arrival_time) = self.ped_arrival_times.get((self.ped_counter) as usize) {
             if arrival_time > curr_time {
                 events.push(Event(arrival_time, EventType::PedestrianArrival));
             }
         }
+
+        // Vehicle arrival events
         if let Some(&arrival_time) = self.veh_arrival_times.get((self.veh_counter) as usize) {
             if arrival_time > curr_time {
                 events.push(Event(arrival_time, EventType::VehicleArrival));
             }
         }
 
+        // Vehicle reaching speed limit or zero speed events.
         let curr_vehicles = self.state.get_vehicles();
         for (i, vehicle) in curr_vehicles.iter().enumerate() {
             let accel = vehicle.get_acceleration();
@@ -181,7 +181,9 @@ impl Simulation for EventDrivenSim {
                 events.push(Event(curr_time + t_delta, EventType::ZeroSpeedReached(i)));
             }
 
-            // Logic to check for obstacle events
+            // Logic to check for obstacle-related events.
+
+            // Crossing obstacles:
             if let Some((ref crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
                 if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, *crossing_obstacle) {
                     let t_delta = TimeDelta::from(t_delta_crossing);
@@ -189,6 +191,7 @@ impl Simulation for EventDrivenSim {
                 }
             }
 
+            // Vehicle obstacles:
             if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
                 // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_osbstacle();
@@ -198,7 +201,6 @@ impl Simulation for EventDrivenSim {
                 }
             }
         }
-
 
         // This is infallible since the vector always contains the termination time
         events.into_iter().min().unwrap()
