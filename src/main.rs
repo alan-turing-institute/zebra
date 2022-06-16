@@ -17,7 +17,7 @@ fn main() {
     let mut simulation = EventDrivenSim::new(
         0, 0, 60_000,
         1., 1.,
-        Road::new(1000.0)
+        Road::new()
     );
 
     let as_json= to_json(&simulation.state).unwrap();

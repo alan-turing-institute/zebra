@@ -31,7 +31,6 @@ pub struct EventDrivenSim {
 
     road: Road,
     pub state: Box<dyn State>
-    // pub state: SimulatorState
 }
 
 impl EventDrivenSim {
@@ -221,7 +220,7 @@ mod tests {
     use super::*;
 
     fn test_sim() -> EventDrivenSim {
-        let road = Road::new(100.0, Vec::new());
+        let road = Road::new();
         EventDrivenSim::new(147, 0, 60000, 0.1, 0.2, road)
     }
 
