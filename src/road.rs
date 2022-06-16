@@ -1,6 +1,7 @@
 
 use serde::{Serialize, Deserialize};
 
+use crate::obstacle::Obstacle;
 use crate::{ID, TimeDelta};
 
 type Length = f32;
@@ -86,6 +87,27 @@ impl Crossing {
 
 }
 
+impl Obstacle for Crossing {
+
+    fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
+
+
+        // Get the ID of this crossing.
+        // let id = &self.get_id();
+
+        // TODO.
+        // road.get_crossing_position(id, direction)
+    }
+
+    fn get_speed(&self) -> f32 {
+        0.0
+    }
+
+    fn get_acceleration(&self) -> f32 {
+        0.0
+    }
+}
+
 pub struct Road {
     length: Length,
     crossings_up: Vec<(Crossing, Position)>,
@@ -122,7 +144,6 @@ impl Road {
     }
 
 }
-
 
 
 #[cfg(test)]
