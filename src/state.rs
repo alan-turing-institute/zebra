@@ -1,8 +1,8 @@
-use crate::pedestrian::Pedestrian;
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car, Action};
-use crate::road::Direction;
+use crate::road::{Direction, Crossing};
+use crate::pedestrian::Pedestrian;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 
@@ -45,8 +45,7 @@ impl Serialize for SimulatorState <'_> {
         let mut state = serializer.serialize_struct("State", 3)?;
         state.serialize_field("timestamp", &self.timestamp)?;
         state.serialize_field("pedestrians", &self.get_pedestrians())?;
-        // TODO: implement Serialize for vehicle trait if possible
-        // state.serialize_field("cars", &self.vehicles)?;
+        state.serialize_field("vehicles", &self.vehicles)?;
         state.end()
     }
 }
@@ -129,6 +128,38 @@ mod tests {
 
         assert_eq!(state.get_vehicles().len(), 0); // No vehicles
         assert_eq!(state.get_pedestrians().len(), 0); // No pedestrians
+    }
+
+    #[test]
+    fn test_simulator_state_serialize() {        
+        // Make test state
+        let mut test_state = SimulatorState::new();
+
+        // Make test cars
+        let car1 = Car::new(1, Direction::Up, 13.0,Action::Accelerate);
+        let car2 = Car::new(2, Direction::Down, 10.0,Action::Accelerate);
+
+        // Make test crossing
+        let test_pelican = Crossing::pelican(0);
+
+        // Make test pedestrians
+        let ped1 = Pedestrian::new(1, &test_pelican, 0);
+        let ped2 = Pedestrian::new(2, &test_pelican, 20);
+
+        // Make ped_vec and veh_vec
+        let ped_vec: Vec<Pedestrian> = vec![ped1, ped2];
+        let veh_vec: Vec<Box<dyn Vehicle>> = vec![car1, car2]
+            .drain(..)
+            .map(|car| Box::<dyn Vehicle>::from(Box::new(car)))
+            .collect();
+
+        // Assign ped_vec and veh_vec to state
+        test_state.pedestrians = ped_vec;
+        test_state.vehicles = veh_vec;
+
+        let as_json= to_json(&test_state).unwrap();
+        println!("{}", &as_json);
+        assert_eq!(&as_json, "{\"timestamp\":0,\"pedestrians\":[{\"id\":1,\"location\":0,\"arrival_time\":0},{\"id\":2,\"location\":0,\"arrival_time\":20}],\"vehicles\":[{\"id\":1,\"length\":4.0,\"buffer_zone\":1.0,\"direction\":\"Up\",\"position\":0.0,\"speed\":13.0,\"acceleration\":3.0},{\"id\":2,\"length\":4.0,\"buffer_zone\":1.0,\"direction\":\"Down\",\"position\":0.0,\"speed\":10.0,\"acceleration\":3.0}]}");
     }
 
 }
