@@ -131,6 +131,9 @@ impl Vehicle for Car {
 
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
+        // TODO NEXT: Rewrite this using the vehicle ID.
+        panic!();
+
         let my_direction = &self.get_direction();
         if vehicles.len() == 0 {
             return Option::None
