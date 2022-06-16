@@ -2,8 +2,10 @@ use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 use crate::events::{Event, EventResult, EventType};
 use crate::pedestrian::Person;
+use rand::distributions::WeightedIndex;
 
-use crate::Time;
+use crate::{ID, Time, pedestrian};
+use crate::pedestrian::Pedestrian;
 use crate::time::TimeDelta;
 use crate::simulation::{Simulation, arrival_times};
 use crate::vehicle::{Vehicle, Car, Action};
@@ -23,17 +25,23 @@ pub struct EventDrivenSim {
     pub ped_arrival_times: Vec<Time>,
     pub veh_arrival_times: Vec<Time>,
 
+    ped_counter: ID,
+    veh_counter: ID,
+    // dist: WeightedIndex<T>,
+    
     road: Road,
     state: Box<dyn State>
 }
 
 impl EventDrivenSim {
 
-    pub fn new(seed: u64,
+    pub fn new(
+	seed: u64,
         start_time: Time,
         end_time: Time,
         ped_arrival_rate: f32,
         veh_arrival_rate: f32,
+	// crossing_weights: Vec<f64>,
         road: Road) -> EventDrivenSim {
 
         assert!(end_time > start_time);
@@ -44,10 +52,17 @@ impl EventDrivenSim {
         // See https://stackoverflow.com/questions/59020767/how-can-i-input-an-integer-seed-for-producing-random-numbers-using-the-rand-crat
         let mut rng = StdRng::seed_from_u64(seed);
 
+	// let dist = WeightedIndex::new(&crossing_weights).unwrap();
+	
         // Generate pedestrian & vehicle arrival times.
         let ped_arrival_times = arrival_times(&start_time, &end_time, ped_arrival_rate, &mut rng);
         let veh_arrival_times = arrival_times(&start_time, &end_time, veh_arrival_rate, &mut rng);
-
+	
+	// TODO: Make vector of pedestrian and vehicle ids
+	// let pedestrians = generate_pedestrians();
+	// let cars = generate_pedestrians();
+	// vec: 0..veh_arrival_times.len()
+	
         // Construct initial (empty) state at time 0.
         let state = Box::new(SimulatorState::new());
 
@@ -59,6 +74,9 @@ impl EventDrivenSim {
             veh_arrival_rate,
             ped_arrival_times,
             veh_arrival_times,
+	    ped_counter: 0,
+	    veh_counter: 0,
+	    // dist,
             road,
             state
         };
@@ -79,6 +97,15 @@ impl EventDrivenSim {
         self.veh_arrival_times = veh_arrival_times;
     }
 
+    fn generate_ped(&mut self) {
+	// self.state.add_ped();
+	self.ped_counter += 1;
+    }
+
+    fn generate_veh(&mut self) {
+	// self.state.add_veh();
+	self.veh_counter += 1;
+    }
     // pub fn current_state() -> State {
 
     // }
@@ -235,7 +262,7 @@ mod tests {
     #[test]
     fn test_vehicle_stopping_event() {
 
-        let vehicles = vec!(Car::new(0.0));
+        // let vehicles = vec!(Car::new(0.0));
 
         // TODO NEXT.
         // let state = SimulatorState::dummy();
