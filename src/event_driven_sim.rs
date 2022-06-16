@@ -109,7 +109,7 @@ impl Simulation for EventDrivenSim {
     }
 
     fn get_state(&self) -> &Box<dyn State> {
-        self.state
+        &self.state
     }
 }
 
