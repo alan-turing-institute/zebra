@@ -127,6 +127,7 @@ impl EventDrivenSim {
         let idx = self.state.push_vehicle(Box::new(vehicle));
         self.state.get_vehicle(idx)
     }
+
     fn new_pedestrian(&mut self) -> &dyn Person {
         let n_crossings = self.road.get_crossings(&Direction::Up).len();
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
@@ -139,9 +140,11 @@ impl EventDrivenSim {
         let idx =self.state.push_pedestrian(pedestrian);
         self.state.get_pedestrian(idx)
     }
+
     fn remove_vehicle(&mut self, idx: usize) {
         self.state.pop_vehicle(idx);
     }
+
     fn remove_pedestrian(&mut self, idx: usize) {
         self.state.pop_pedestrian(idx);
     }
@@ -242,63 +245,111 @@ impl Simulation for EventDrivenSim {
         self.state.update(time_delta);
     }
 
-    // update state
+    // Update the state instantaneously based on the type of event.
     fn instantaneous_update(&mut self, event_type: EventType) {
 
-        // TODO.
-
+        use EventType::*;
+        match event_type {
+            VehicleArrival => {
+                self.new_vehicle();
+                // EventResult::NewVehicle(self.new_vehicle())
+            }
+            VehicleExit(idx) => {
+                self.remove_vehicle(idx);
+                // EventResult::RemoveVehicle
+            }
+            SpeedLimitReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
+                vehicle.action(Action::StaticSpeed);
+                // EventResult::VehicleChange(&*vehicle)
+            }
+            ZeroSpeedReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
+                vehicle.action(Action::StaticSpeed);
+                // EventResult::VehicleChange(&*vehicle)
+            }
+            ReactionToObstacle(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
+                vehicle.action(Action::Deccelerate);
+                // EventResult::VehicleChange(&*vehicle)
+            }
+            PedestrianArrival => {
+                // EventResult::NewPedestrian(self.new_pedestrian())
+                self.new_pedestrian();
+            }
+            PedestrianExit(idx) => {
+                self.remove_pedestrian(idx);
+                // EventResult::RemovePedestrian
+            }
+            LightsToRed(idx) => {
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
+                // TODO.
+                // EventResult::CrossingChange(crossing)
+            }
+            LightsToGreen(idx) => {
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
+                // TODO.
+                // EventResult::CrossingChange(crossing)
+            }
+            StopSimulation => {
+                // EventResult::NoEffect
+                // Nothing to do.
+            }
+            _ => unreachable!()
+        }
     }
 
     fn get_state(&self) -> &Box<dyn State> {
         &self.state
     }
 
-    fn handle_event(&mut self, event: Event) -> EventResult<'_> {
-        use EventType::*;
-        match event.1 {
-            VehicleArrival => {
-                EventResult::NewVehicle(self.new_vehicle())
-            }
-            VehicleExit(idx) => {
-                self.remove_vehicle(idx);
-                EventResult::RemoveVehicle
-            }
-            SpeedLimitReached(idx) => {
-                let vehicle = self.state.get_mut_vehicle(idx);
-                vehicle.action(Action::StaticSpeed);
-                EventResult::VehicleChange(&*vehicle)
-            }
-            ZeroSpeedReached(idx) => {
-                let vehicle = self.state.get_mut_vehicle(idx);
-                vehicle.action(Action::StaticSpeed);
-                EventResult::VehicleChange(&*vehicle)
-            }
-            ReactionToObstacle(idx) => {
-                let vehicle = self.state.get_mut_vehicle(idx);
+    // Moved to instantaneous_update (EventResult appears to be superfluous):
+    // fn handle_event(&mut self, event: Event) -> EventResult<'_> {
+    //     use EventType::*;
+    //     match event.1 {
+    //         VehicleArrival => {
+    //             EventResult::NewVehicle(self.new_vehicle())
+    //         }
+    //         VehicleExit(idx) => {
+    //             self.remove_vehicle(idx);
+    //             EventResult::RemoveVehicle
+    //         }
+    //         SpeedLimitReached(idx) => {
+    //             let vehicle = self.state.get_mut_vehicle(idx);
+    //             vehicle.action(Action::StaticSpeed);
+    //             EventResult::VehicleChange(&*vehicle)
+    //         }
+    //         ZeroSpeedReached(idx) => {
+    //             let vehicle = self.state.get_mut_vehicle(idx);
+    //             vehicle.action(Action::StaticSpeed);
+    //             EventResult::VehicleChange(&*vehicle)
+    //         }
+    //         ReactionToObstacle(idx) => {
+    //             let vehicle = self.state.get_mut_vehicle(idx);
 
-                EventResult::VehicleChange(&*vehicle)
-            }
-            PedestrianArrival => {
-                EventResult::NewPedestrian(self.new_pedestrian())
-            }
-            PedestrianExit(idx) => {
-                self.remove_pedestrian(idx);
-                EventResult::RemovePedestrian
-            }
-            LightsToRed(idx) => {
-                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
-                EventResult::CrossingChange(crossing)
-            }
-            LightsToGreen(idx) => {
-                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
-                EventResult::CrossingChange(crossing)
-            }
-            StopSimulation => {
-                EventResult::NoEffect
-            }
-            _ => unreachable!()
-        }
-    }
+    //             EventResult::VehicleChange(&*vehicle)
+    //         }
+    //         PedestrianArrival => {
+    //             EventResult::NewPedestrian(self.new_pedestrian())
+    //         }
+    //         PedestrianExit(idx) => {
+    //             self.remove_pedestrian(idx);
+    //             EventResult::RemovePedestrian
+    //         }
+    //         LightsToRed(idx) => {
+    //             let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
+    //             EventResult::CrossingChange(crossing)
+    //         }
+    //         LightsToGreen(idx) => {
+    //             let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
+    //             EventResult::CrossingChange(crossing)
+    //         }
+    //         StopSimulation => {
+    //             EventResult::NoEffect
+    //         }
+    //         _ => unreachable!()
+    //     }
+    // }
 
     fn get_road(&self) -> &Road {
         &self.road
