@@ -116,7 +116,7 @@ impl EventDrivenSim {
     fn remove_vehicle(&mut self, idx: usize) { todo!() }
     fn remove_pedestrian(&mut self, idx: usize) { todo!() }
 
-    fn time_to_obstacle_event(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> Option<f32> {
+    fn time_to_obstacle_event<T:Obstacle + ?Sized>(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> Option<f32> {
 
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
@@ -133,10 +133,10 @@ impl EventDrivenSim {
             if rel_speed <= 0.0 {
                 None
             } else{
-                // We are at max speed, what time will we be in the braking zone 
+                // We are at max speed, what time will we be in the braking zone
                 Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
             }
-            
+
 
         } else if rel_accel > 0.0 {
             // We are accelerating, what time will we be in the braking zone
@@ -182,17 +182,21 @@ impl Simulation for EventDrivenSim {
             }
 
             // Logic to check for obstacle events
-            let crossing_obstacle = vehicle.next_crossing();
-            let vehicle_obstacle = vehicle.next_vehicle();
-            if let Some(t_delta_crossing) = self.time_to_obstacle_event(crossing_obstacle) {
-                let t_delta = TimeDelta::from(t_delta_crossing);
-                events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+            if let Some((ref crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
+                if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, *crossing_obstacle) {
+                    let t_delta = TimeDelta::from(t_delta_crossing);
+                    events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+                }
             }
-            if let Some(t_delta_vehicle) = self.time_to_obstacle_event(vehicle_obstacle){
-                let t_delta = TimeDelta::from(t_delta_vehicle);
-                events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+
+            if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
+                // Upcast vehicle_obstacle to the Base trait Obstacle.
+                let obstacle: &dyn Obstacle = vehicle_obstacle.as_osbstacle();
+                if let Some(t_delta_vehicle) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle){
+                    let t_delta = TimeDelta::from(t_delta_vehicle);
+                    events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+                }
             }
-            
         }
 
 
