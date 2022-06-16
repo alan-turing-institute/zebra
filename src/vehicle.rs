@@ -258,5 +258,3 @@ mod tests {
     // Don't deccelerate when speed is 0
     // Don't accelerate if at the speed limit
     // Stop deceleration when speed is 0
-
-
