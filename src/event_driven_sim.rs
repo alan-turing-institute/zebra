@@ -11,6 +11,7 @@ use crate::simulation::{Simulation, arrival_times};
 use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE};
 use crate::road::{Road, Direction};
 use crate::state::{State, SimulatorState};
+use crate::obstacle::Obstacle;
 
 pub struct EventDrivenSim {
 
@@ -115,6 +116,30 @@ impl EventDrivenSim {
     fn remove_vehicle(&mut self, idx: usize) { todo!() }
     fn remove_pedestrian(&mut self, idx: usize) { todo!() }
 
+    fn time_to_obstacle_event(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> f32 {
+
+        let rel_accel = vehicle.relative_acceleration(obstacle);
+        let rel_speed = vehicle.relative_speed(obstacle);
+        let rel_position = vehicle.relative_position(obstacle, &self.get_road(), vehicle.get_direction());
+
+        if rel_accel < 0 {
+            // Obstacle is accelerating away from the vehicle.
+            return f32::INFINITY
+        }
+        if rel_accel == 0 {
+
+            // Obstacle is receding and we're not relatively accelerating.
+            if rel_speed <= 0 {
+                return f32::INFINITY
+            }
+            return rel_position / rel_speed;
+        }
+        if rel_accel > 0 {
+
+        }
+
+        0.0
+    }
 }
 
 impl Simulation for EventDrivenSim {
@@ -152,7 +177,12 @@ impl Simulation for EventDrivenSim {
             }
 
             // Logic to check for obstacle events
-
+            let crossing_obstacle = vehicle.next_crossing();
+            let vehicle_obstacle = vehicle.next_vehicle();
+            let t_delta_crossing = self.time_to_obstacle_event(crossing_obstacle);
+            let t_delta_vehicle = self.time_to_obstacle_event(vehicle_obstacle);
+            let t_delta = t_delta_crossing.min(t_delta_vehicle);
+            events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
         }
 
 
