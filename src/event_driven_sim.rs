@@ -220,6 +220,10 @@ impl Simulation for EventDrivenSim {
             _ => unreachable!()
         }
     }
+
+    fn get_road(&self) -> &Road {
+        &self.road
+    }
 }
 
 

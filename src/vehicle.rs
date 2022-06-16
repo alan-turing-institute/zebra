@@ -150,31 +150,6 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
-    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>{
-
-        let pairs = road.get_crossings(&self.get_direction());
-        let mut minimum_distance: f32 = std::f32::INFINITY;
-        let mut next_c: &Crossing = &pairs[0].0;
-        let mut next_p: &f32 = &pairs[0].1;
-        let mut distance: f32 = (next_p - self.get_veh_position()).abs();
-        let mut minimum_distance: f32 = distance;
-
-        for (cross, pos) in &pairs[1..] {
-            next_p = pos;
-            next_c = cross;
-            distance = (pos - self.get_veh_position()).abs();
-            if distance < minimum_distance && pos > &self.get_veh_position() {
-                minimum_distance = distance;
-            }
-        }
-
-        if minimum_distance == std::f32::INFINITY {
-            Option::None
-        } else {
-            Option::Some((next_c, next_p))
-        }
-    }
-
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road)-> f32 {
 
         // Negative relative_position means obstacle in front of car
@@ -206,6 +181,28 @@ impl Vehicle for Car {
     fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32 {
 
         &self.get_acceleration() - obstacle.get_acceleration()
+    }
+
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>{
+
+        let my_direction = &self.get_direction();
+        let crossings = road.get_crossings(my_direction);
+
+        if crossings.len() == 0 {
+            return Option::None
+        }
+
+        for (crossing, position) in crossings {
+
+            // This assumes crossings are ordered by increasing position.
+            if &crossing.get_position(&road, my_direction) < &self.get_veh_position() {
+                continue;
+            }
+            return Option::Some((crossing, position))
+        }
+
+        // If this vehicle has passed all crossings, return None.
+        Option::None
     }
 
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
@@ -334,23 +331,28 @@ mod tests {
 	    ];
 
         let road = Road::new(30.0f32, crossings);
-        let mut sim = EventDrivenSim::new(122, 0, 60000, 0.1, 0.2, road);
-        let ped_arrival_times = vec!(0);
-        let veh_arrival_times = vec!(0);
+        // let mut sim = EventDrivenSim::new(122, 0, 60000, 0.1, 0.2, road);
+        // let ped_arrival_times = vec!(0);
+        // let veh_arrival_times = vec!(0);
 
-        sim.set_ped_arrival_times(ped_arrival_times);
-        sim.set_veh_arrival_times(veh_arrival_times);
+        // sim.set_ped_arrival_times(ped_arrival_times);
+        // sim.set_veh_arrival_times(veh_arrival_times);
 
-        let next_data: (&Crossing, &f32);
+        // let next_data: (&Crossing, &f32);
 
-        match sim.get_state().get_vehicles()[0].next_crossing(&road) {
-            Some((x, y)) => next_data = (x, y),
-            None => panic!("no vals"),
-        }
+        // match sim.get_state().get_vehicles()[0].next_crossing(sim.get_road()) {
+        //     Some((x, y)) => next_data = (x, y),
+        //     None => panic!("no vals"),
+        // }
 
-        assert_eq!(next_data.0, &crossings[0].0);
-        assert_eq!(next_data.1, &10.0);
+        // assert_eq!(next_data.0, &sim.get_road().get_crossings(&Direction::Up)[0].0);
+        // assert_eq!(next_data.1, &10.0);
 
+        let vehicle = Car::new(0, Direction::Up, 0.0, Action::Accelerate);
+        let actual = vehicle.next_crossing(&road).unwrap();
+
+        // assert_eq!(actual.0, &road.get_crossings(&Direction::Up)[0].0);
+        assert_eq!(actual.1, &10.0);
     }
 
     #[test]

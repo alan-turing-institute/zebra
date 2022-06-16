@@ -40,6 +40,7 @@ pub trait Simulation {
     //         _ => unreachable!()
     //     }
     // }
+    fn get_road(&self) -> &Road;
 }
 
 // MOVED TO EventDrivenSim
