@@ -128,10 +128,10 @@ impl Simulation for EventDrivenSim {
         let curr_time = *self.state.timestamp();
         let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
-        if let Some(&arrival_time) = self.ped_arrival_times.get(self.ped_arrival_idx+1) {
+        if let Some(&arrival_time) = self.ped_arrival_times.get(self.ped_counter+1) {
             events.push(Event(arrival_time, EventType::PedestrianArrival));
         }
-        if let Some(&arrival_time) = self.veh_arrival_times.get(self.veh_arrival_idx+1) {
+        if let Some(&arrival_time) = self.veh_arrival_times.get(self.veh_counter+1) {
             events.push(Event(arrival_time, EventType::VehicleArrival));
         }
 
