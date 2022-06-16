@@ -5,8 +5,9 @@ mod state;
 mod pedestrian;
 mod vehicle;
 mod simulation;
+mod config;
 mod events;
-mod event_driven_sim;
+pub mod event_driven_sim;
 
 pub use time::TimeDelta;
 
@@ -17,3 +18,5 @@ pub type Speed = f32;
 pub type Acceleration = f32;
 
 pub use road::*;
+pub use config::get_zebra_config;
+pub use simulation::Simulation;

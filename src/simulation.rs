@@ -13,7 +13,6 @@ use crate::vehicle::{Vehicle, Car};
 
 
 pub trait Simulation {
-
     // get time interval until next event
     fn next_event(&mut self) -> Event;
 

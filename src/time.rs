@@ -63,6 +63,14 @@ impl Add<Time> for &'_ TimeDelta {
     }
 }
 
+impl Add<TimeDelta> for Time {
+    type Output = Time;
+
+    fn add(self, rhs: TimeDelta) -> Self::Output {
+        rhs.0 + self
+    }
+}
+
 impl Add<Time> for TimeDelta {
     type Output = Time;
 
@@ -76,14 +84,6 @@ impl Mul<Speed> for &'_ TimeDelta {
 
     fn mul(self, rhs: Speed) -> Self::Output {
         rhs * Into::<f32>::into(self)
-    }
-}
-
-impl Add<TimeDelta> for Time {
-    type Output = Time;
-
-    fn add(self, rhs: TimeDelta) -> Self::Output {
-        self + rhs.0
     }
 }
 
