@@ -144,7 +144,7 @@ impl Road {
 
         // TODO. If the vector of crossings is in order of ID,
         // there's a much quicker way of doing this.
-        for (crossing, position) in self.get_crossings(direction).iter() {
+        for (crossing, position) in self.get_crossings(&direction).iter() {
             if &crossing.get_id() == id {
                 return *position
             }
@@ -234,11 +234,11 @@ mod tests {
         ];
         let road = Road::new(30.0f32, crossings);
 
-        let (crossing, position) = &road.get_crossings(Direction::Up)[0];
+        let (crossing, position) = &road.get_crossings(&Direction::Up)[0];
         assert_eq!(crossing.get_position(&road, &Direction::Up), 10.0);
         assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 10.0);
 
-        let (crossing, position) = &road.get_crossings(Direction::Up)[1];
+        let (crossing, position) = &road.get_crossings(&Direction::Up)[1];
         assert_eq!(crossing.get_position(&road, &Direction::Up), 13.0);
         assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 13.0);
     }
