@@ -34,7 +34,7 @@ pub enum EventResult<'a> {
     NoEffect
 }
 
-
+#[derive(Debug)]
 pub struct Event(pub Time, pub EventType);
 
 impl PartialEq for Event {
