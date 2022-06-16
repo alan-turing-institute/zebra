@@ -77,7 +77,7 @@ impl Obstacle for Crossing {
         // let id = &self.get_id();
 
         // TODO.
-        0.0
+        // road.get_crossing_position(id, direction)
     }
 
     fn get_speed(&self) -> f32 {
