@@ -1,5 +1,7 @@
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
+use crate::events::{Event, EventResult, EventType};
+use crate::pedestrian::Person;
 use rand::distributions::WeightedIndex;
 use crate::events::{Event, EventResult, EventType};
 use crate::pedestrian::Person;

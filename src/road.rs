@@ -6,7 +6,7 @@ use crate::{ID, TimeDelta};
 type Length = f32;
 type Position = Length;
 
-#[derive(Copy,Clone)]
+#[derive(Copy,Clone,Serialize,Deserialize)]
 pub enum Direction {
     Up,
     Down
