@@ -141,20 +141,30 @@ impl<'a> State for SimulatorState<'a> {
 
     fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize {
         todo!()
+        // Below code leaads to "lifetime mismatch"
         // self.pedestrians.push_back(pedestrian);
         // self.pedestrians.len() - 1
     }
 
     fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_> {
         todo!()
+        // TODO: should this really be "pop" if it is taking a particular idx
+        // TODO: if it is taking particular idx this breaks order of vector
+        //       or will be very slow. What is intended?
+        // self.pedestrians[idx].pop_front().unwrap()
     }
 
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize {
-        todo!()
+        self.vehicles.push_back(vehicle);
+        self.vehicles.len() - 1
     }
 
     fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
         todo!()
+        // TODO: should this really be "pop" if it is taking a particular idx
+        // TODO: if it is taking particular idx this breaks order of vector
+        //       or will be very slow. What is intended?
+        // self.vehicles.pop_front().unwrap()
     }
 
 
