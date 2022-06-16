@@ -22,6 +22,8 @@ pub trait Simulation {
     // update simulation state
     fn instantaneous_update(&mut self);
 
+    fn get_state(&self) -> &Box<dyn State> ;
+
     fn handle_event(&mut self, event: Event) -> EventResult<'_>;
     // {
     //     use EventType::*;
@@ -38,6 +40,7 @@ pub trait Simulation {
     //         _ => unreachable!()
     //     }
     // }
+    fn get_road(&self) -> &Road;
 }
 
 // MOVED TO EventDrivenSim
@@ -152,10 +155,9 @@ pub fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng:
     let mut t = start_time.clone();
     loop {
         t = t + interarrival_time(arrival_rate, rng);
-        if &t > end_time { break; }
+        if &t > end_time { break ret }
         ret.push(t);
     }
-    ret
 }
 
 pub fn interarrival_time(arrival_rate: f32, rng: &mut StdRng) -> Time {

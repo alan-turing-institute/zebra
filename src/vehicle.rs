@@ -1,10 +1,16 @@
-use crate::time::{TimeDelta,TIME_RESOLUTION};
-use crate::road::{Road, Direction};
-use crate::state::State;
-use crate::obstacle::Obstacle;
-use crate::{Time, ID};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
+
+use crate::{Time, ID};
+use crate::time::TimeDelta;
+use crate::time::TIME_RESOLUTION;
+use crate::road::Crossing;
+use crate::road::Road;
+use crate::road::Direction;
+use crate::state::State;
+use crate::event_driven_sim::EventDrivenSim;
+use crate::simulation::Simulation;
+use crate::obstacle::Obstacle;
 
 pub const MAX_SPEED: f32 = 13.41;
 pub const ACCELERATION_VALUE: f32 = 3.0;
@@ -27,6 +33,7 @@ pub trait Vehicle : Obstacle {
     fn get_veh_position(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>;
     fn relative_speed(&self, obstacle: &dyn Obstacle) -> f32;
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
     fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
@@ -176,6 +183,28 @@ impl Vehicle for Car {
         &self.get_acceleration() - obstacle.get_acceleration()
     }
 
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>{
+
+        let my_direction = &self.get_direction();
+        let crossings = road.get_crossings(my_direction);
+
+        if crossings.len() == 0 {
+            return Option::None
+        }
+
+        for (crossing, position) in crossings {
+
+            // This assumes crossings are ordered by increasing position.
+            if &crossing.get_position(&road, my_direction) < &self.get_veh_position() {
+                continue;
+            }
+            return Option::Some((crossing, position))
+        }
+
+        // If this vehicle has passed all crossings, return None.
+        Option::None
+    }
+
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
         // TODO NEXT: Rewrite this using the vehicle ID.
@@ -199,6 +228,8 @@ impl Vehicle for Car {
             }
             return Option::Some(vehicle)
         }
+
+        // If this vehicle is in front of all the others, return None.
         Option::None
     }
 }
@@ -293,6 +324,38 @@ mod tests {
         spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
     }
 
+    #[test]
+    fn test_next_crossing(){
+
+        let crossings = vec![
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 20.0),
+	    ];
+
+        let road = Road::new(30.0f32, crossings);
+        let mut sim = EventDrivenSim::new(122, 0, 60000, 0.1, 0.2, road);
+        let ped_arrival_times = vec!(0);
+        let veh_arrival_times = vec!(0);
+
+        sim.set_ped_arrival_times(ped_arrival_times);
+        sim.set_veh_arrival_times(veh_arrival_times);
+
+        let next_data: (&Crossing, &f32);
+
+        match sim.get_state().get_vehicles()[0].next_crossing(sim.get_road()) {
+            Some((x, y)) => next_data = (x, y),
+            None => panic!("no vals"),
+        }
+
+        assert_eq!(next_data.0, &sim.get_road().get_crossings(&Direction::Up)[0].0);
+        assert_eq!(next_data.1, &10.0);
+
+        let vehicle = Car::new(0, Direction::Up, 0.0, Action::Accelerate);
+        let actual = vehicle.next_crossing(&road).unwrap();
+
+        // assert_eq!(actual.0, &road.get_crossings(&Direction::Up)[0].0);
+        assert_eq!(actual.1, &10.0);
+    }
 
     #[test]
     fn test_car_as_obstacle(){

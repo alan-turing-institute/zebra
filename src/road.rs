@@ -99,13 +99,9 @@ impl Obstacle for Crossing {
 
     fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
 
-
-        // Get the ID of this crossing.
-        // let id = &self.get_id();
-
-        // TODO.
-        // road.get_crossing_position(id, direction)
-        0.0
+        // Use the ID of this crossing to get its position in the road.
+        let id = &self.get_id();
+        road.get_crossing_position(id, *direction)
     }
 
     fn get_speed(&self) -> f32 {
@@ -124,9 +120,24 @@ pub struct Road {
 }
 
 impl Road {
+    // Here the position of the crossings is assumed to be in the `Up` direction.
+    pub fn new(length: Length, crossings: Vec<(Crossing, Position)>) -> Road {
+        for (_, position) in crossings.iter() {
+            assert!(0.0 <= *position && *position <= length);
+        }
+
+        // TODO: check the ordering of the ids is correct.
+
+        let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
+        let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
+        for (crossing, position) in crossings.into_iter().rev() {
+            crossings_down.push((crossing, length - position));
+        }
+        Road { length, crossings_up, crossings_down }
+    }
 
     // Here the position of the crossings is assumed to be in the `Up` direction.
-    pub fn new() -> Road {
+    pub fn config_new() -> Road {
 
     // Load from zebra.toml
     let config = get_zebra_config();
@@ -173,12 +184,24 @@ impl Road {
         self.length
     }
 
-    pub fn get_crossings(&self, direction: Direction) -> &[(Crossing, Position)]
+    pub fn get_crossings(&self, direction: &Direction) -> &[(Crossing, Position)]
     {
 	match direction {
 	    Direction::Up => &self.crossings_up,
 	    Direction::Down => &self.crossings_down
 	}
+    }
+
+    pub fn get_crossing_position(&self, id: &ID, direction: Direction) -> f32 {
+
+        // TODO. If the vector of crossings is in order of ID,
+        // there's a much quicker way of doing this.
+        for (crossing, position) in self.get_crossings(&direction).iter() {
+            if &crossing.get_id() == id {
+                return *position
+            }
+        }
+        panic!("Crossing ID not found: {}", id);
     }
 
 }
@@ -226,27 +249,20 @@ mod tests {
 
     #[test]
     fn test_road_constructor() {
-        let road = Road::new();    
+        let road = Road::config_new();    
     }
 
-    // TODO: removed test from here as should be tested in config for valid entries.
-    // #[test]
-    // #[should_panic]
-    // fn test_road_constructor_panics() {
-    //     // Should panic due to invalid crossing position.
-    //     // let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 30.0)];
-    //     let road = Road::new();
-    //     let length = road.get_length();
-    //     for (crossing, position) in road.get_crossings(Direction::Up).into_iter() {
-    //         if *position < 0.0 || *position > length {
-    //             panic!();
-    //         }
-    //     }
-    // }
+    #[test]
+    #[should_panic]
+    fn test_road_constructor_panics() {
+        // Should panic due to invalid crossing position.
+        let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 30.0)];
+        Road::new(20.0f32, crossings);
+    }
 
     #[test]
-    fn test_road_get_length() {
-        let test_road = Road::new();
+    fn test_road_get_length_config() {
+        let test_road = Road::config_new();
         let test_config = get_zebra_config();
         assert_eq!(test_road.get_length(), test_config.road_length);
     }
@@ -260,12 +276,30 @@ mod tests {
     }
 
     #[test]
+    fn test_get_position() {
+
+        let crossings = vec![
+            (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+            (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+        ];
+        let road = Road::new(30.0f32, crossings);
+
+        let (crossing, position) = &road.get_crossings(&Direction::Up)[0];
+        assert_eq!(crossing.get_position(&road, &Direction::Up), 10.0);
+        assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 10.0);
+
+        let (crossing, position) = &road.get_crossings(&Direction::Up)[1];
+        assert_eq!(crossing.get_position(&road, &Direction::Up), 13.0);
+        assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 13.0);
+    }
+
+
+    #[test]
     fn test_road_get_crossings() {
-        
-        let road = Road::new();
+        let road = Road::config_new();
 
         // IDs count monotonically up when direction is Up, and check position is increasing
-        let crossings = road.get_crossings(Direction::Up);
+        let crossings = road.get_crossings(&Direction::Up);
         let mut previous_position = 0.;
         for (i, &(crossing, position)) in crossings.into_iter().enumerate() {
             assert_eq!(crossing.get_id(), i as ID);
@@ -275,7 +309,7 @@ mod tests {
 
         // IDs count monotonically down when direction is Down
         // Check position is increasing
-        let crossings = road.get_crossings(Direction::Down);
+        let crossings = road.get_crossings(&Direction::Down);
         let mut previous_position = 0.;
         let mut i: usize = crossings.len();
         for &(crossing, position) in crossings.into_iter() {
@@ -285,19 +319,21 @@ mod tests {
             previous_position = position;
         }
 
-	    
-        // assert_eq!(
-        //     road.get_crossings(direction),
-        //     &[
-        //     (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 10.0),
-        //     (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 13.0),
-        // ]);
-	    // let direction = Direction::Down;
-        // assert_eq!(
-	    // road.get_crossings(direction),
-	    // &[
-		// (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 17.0),
-		// (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 20.0),
-	    // ]);
+    }
+
+    #[test]
+    fn test_get_crossing_position() {
+
+        let crossings = vec![
+	    (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+	    (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+	];
+        let road = Road::new(30.0f32, crossings);
+
+        assert_eq!(road.get_crossing_position(&0, Direction::Up), 10.0);
+        assert_eq!(road.get_crossing_position(&1, Direction::Up), 13.0);
+
+        assert_eq!(road.get_crossing_position(&0, Direction::Down), 30.0 - 10.0);
+        assert_eq!(road.get_crossing_position(&1, Direction::Down), 30.0 - 13.0);
     }
 }
