@@ -7,6 +7,7 @@ use std::cmp::{Ord, Eq, Ordering};
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum EventType {
+
     VehicleArrival,
     VehicleExit(usize),
     SpeedLimitReached(usize),

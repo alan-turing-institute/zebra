@@ -13,6 +13,7 @@ use crate::vehicle::{Vehicle, Car};
 
 
 pub trait Simulation {
+
     // get time interval until next event
     fn next_event(&mut self) -> Event;
 
@@ -20,13 +21,15 @@ pub trait Simulation {
     fn roll_forward_by(&mut self, time_delta: TimeDelta);
 
     // update simulation state
-    fn instantaneous_update(&mut self);
+    fn instantaneous_update(&mut self, event_type: EventType);
 
     fn get_state(&self) -> &Box<dyn State> ;
 
     fn handle_event(&mut self, event: Event) -> EventResult<'_>;
 
     fn get_road(&self) -> &Road;
+
+    fn run(&mut self) -> ();
 }
 
 pub fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng: &mut StdRng) -> Vec<Time> {

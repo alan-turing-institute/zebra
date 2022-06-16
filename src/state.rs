@@ -11,6 +11,7 @@ use std::collections::vec_deque::IterMut;
 
 pub trait State {
 
+    // Update the state to reflect passage of time.
     fn update(&mut self, delta_t: TimeDelta);
 
     // fn get_vehicles(&self) -> &[dyn Vehicle];
@@ -31,16 +32,6 @@ pub trait State {
     fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_>;
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize;
     fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
-    // MOVED TO THE SIMULATION TRAIT:
-    // // get time interval until next event
-    // fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> TimeDelta;
-
-    // // roll state forward by time interval
-    // fn roll_forward_by(&mut self, time_delta: TimeDelta);
-
-    // // update state
-    // fn instantaneous_update(&mut self);
-
 }
 
 impl Serialize for dyn State {
@@ -169,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simulator_state_serialize() {        
+    fn test_simulator_state_serialize() {
         // Make test state
         let mut test_state = SimulatorState::new();
 
