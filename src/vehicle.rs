@@ -6,9 +6,9 @@ use crate::state::State;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 
-const MAX_SPEED: f32 = 13.41;
-const ACCELERATION_VALUE: f32 = 3.0;
-const DECCELERATION_VALUE: f32 = -4.0;
+pub const MAX_SPEED: f32 = 13.41;
+pub const ACCELERATION_VALUE: f32 = 3.0;
+pub const DECCELERATION_VALUE: f32 = -4.0;
 
 #[derive(Copy,Clone)]
 pub enum Action {
@@ -179,7 +179,7 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
 
         let mut test_secs = TimeDelta::new(1000);
         test_car.roll_forward_by(test_secs);
-        
+
         let seconds: f32 = test_secs.into();
         assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
 
@@ -190,7 +190,7 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
         } else if matches!(init_action, Action::Deccelerate){
             assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
         }
-        
+
 }
 
 mod tests {

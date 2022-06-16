@@ -1,6 +1,7 @@
 use crate::Time;
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car, Action};
+use std::collections::VecDeque;
 use crate::road::{Direction, Crossing};
 use crate::pedestrian::Pedestrian;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
@@ -12,11 +13,20 @@ pub trait State {
     fn timestamp(&self) -> &Time;
 
     // get the list of vehicles
-    fn get_vehicles(&self) -> &Vec<Box<dyn Vehicle>>;
+    fn get_vehicles(&self) -> &VecDeque<Box<dyn Vehicle>>;
 
     // get the list of pedestrians
-    fn get_pedestrians(&self) ->  &Vec<Pedestrian>;
+    fn get_pedestrians(&self) ->  &VecDeque<Pedestrian>;
 
+    fn get_vehicle(&self, idx: usize) -> &dyn Vehicle;
+    fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle;
+    fn get_pedestrian(&self, idx: usize) -> &Pedestrian;
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_>;
+
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize;
+    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_>;
+    fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize;
+    fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
     // MOVED TO THE SIMULATION TRAIT:
     // // get time interval until next event
     // fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> TimeDelta;
@@ -31,8 +41,8 @@ pub trait State {
 
 pub struct SimulatorState<'a> {
 
-    vehicles: Vec<Box<dyn Vehicle>>,
-    pedestrians: Vec<Pedestrian<'a>>,
+    vehicles: VecDeque<Box<dyn Vehicle>>,
+    pedestrians: VecDeque<Pedestrian<'a>>,
     timestamp: Time
 }
 
@@ -77,6 +87,8 @@ impl<'a> State for SimulatorState<'a> {
     fn get_vehicles(&self) -> &Vec<Box<dyn Vehicle>> {
         &self.vehicles
     }
+
+    fn get_mut_vehicles(&mut self) -> &mut Vec<Box<dyn Vehicle>>;
 
     // get the list of pedestrians
     fn get_pedestrians(&self) ->  &Vec<Pedestrian> {
