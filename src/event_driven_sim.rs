@@ -151,6 +151,7 @@ impl Simulation for EventDrivenSim {
     // get time interval until next event
     fn next_event(&mut self) -> Event {
 
+        // Simulation finished event.
         let curr_time = *self.state.timestamp();
         let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
