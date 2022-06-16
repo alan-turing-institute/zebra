@@ -333,22 +333,22 @@ mod tests {
 	    ];
 
         let road = Road::new(30.0f32, crossings);
-        let mut sim = EventDrivenSim::new(122, 0, 60000, 0.1, 0.2, road);
-        let ped_arrival_times = vec!(0);
-        let veh_arrival_times = vec!(0);
+        // let mut sim = EventDrivenSim::new(122, 0, 60000, 0.1, 0.2, road);
+        // let ped_arrival_times = vec!(0);
+        // let veh_arrival_times = vec!(0);
 
-        sim.set_ped_arrival_times(ped_arrival_times);
-        sim.set_veh_arrival_times(veh_arrival_times);
+        // sim.set_ped_arrival_times(ped_arrival_times);
+        // sim.set_veh_arrival_times(veh_arrival_times);
 
-        let next_data: (&Crossing, &f32);
+        // let next_data: (&Crossing, &f32);
 
-        match sim.get_state().get_vehicles()[0].next_crossing(sim.get_road()) {
-            Some((x, y)) => next_data = (x, y),
-            None => panic!("no vals"),
-        }
+        // match sim.get_state().get_vehicles()[0].next_crossing(sim.get_road()) {
+        //     Some((x, y)) => next_data = (x, y),
+        //     None => panic!("no vals"),
+        // }
 
-        assert_eq!(next_data.0, &sim.get_road().get_crossings(&Direction::Up)[0].0);
-        assert_eq!(next_data.1, &10.0);
+        // assert_eq!(next_data.0, &sim.get_road().get_crossings(&Direction::Up)[0].0);
+        // assert_eq!(next_data.1, &10.0);
 
         let vehicle = Car::new(0, Direction::Up, 0.0, Action::Accelerate);
         let actual = vehicle.next_crossing(&road).unwrap();
