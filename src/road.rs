@@ -91,7 +91,7 @@ impl Obstacle for Crossing {
 
     fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
 
-        // Get the ID of this crossing.
+        // Use the ID of this crossing to get its position in the road.
         let id = &self.get_id();
         road.get_crossing_position(id, *direction)
     }
@@ -224,6 +224,25 @@ mod tests {
 	let test_zebra = Crossing::zebra(1);
         assert_eq!(test_zebra.get_id(), 1);
     }
+
+    #[test]
+    fn test_get_position() {
+
+        let crossings = vec![
+            (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+            (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+        ];
+        let road = Road::new(30.0f32, crossings);
+
+        let (crossing, position) = &road.get_crossings(Direction::Up)[0];
+        assert_eq!(crossing.get_position(&road, &Direction::Up), 10.0);
+        assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 10.0);
+
+        let (crossing, position) = &road.get_crossings(Direction::Up)[1];
+        assert_eq!(crossing.get_position(&road, &Direction::Up), 13.0);
+        assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 13.0);
+    }
+
 
     #[test]
     fn test_road_get_crossings() {
