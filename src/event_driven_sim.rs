@@ -129,10 +129,14 @@ impl Simulation for EventDrivenSim {
         let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
         if let Some(&arrival_time) = self.ped_arrival_times.get((self.ped_counter) as usize) {
-            events.push(Event(arrival_time, EventType::PedestrianArrival));
+            if arrival_time > curr_time {
+                events.push(Event(arrival_time, EventType::PedestrianArrival));
+            }
         }
         if let Some(&arrival_time) = self.veh_arrival_times.get((self.veh_counter) as usize) {
-            events.push(Event(arrival_time, EventType::VehicleArrival));
+            if arrival_time > curr_time {
+                events.push(Event(arrival_time, EventType::VehicleArrival));
+            }
         }
 
         let curr_vehicles = self.state.get_vehicles();
@@ -150,6 +154,7 @@ impl Simulation for EventDrivenSim {
             // Logic to check for obstacle events
 
         }
+
 
         // This is infallible since the vector always contains the termination time
         events.into_iter().min().unwrap()
@@ -222,12 +227,12 @@ mod tests {
 
     fn dummy_sim() -> EventDrivenSim {
         let road = Road::new(100.0, Vec::new());
-        EventDrivenSim::new(147, 0, 60000, 0.1, 0.2, road)
+        EventDrivenSim::new(147, 0, 500_000, 0.1, 0.2, road)
     }
 
     fn dummy_no_arrivals_sim() -> EventDrivenSim {
         let road = Road::new(100.0, Vec::new());
-        EventDrivenSim::new(147, 0, 60000, 0.0, 0.0, road)
+        EventDrivenSim::new(147, 0, 500_000, 0.0, 0.0, road)
     }
 
     #[test]
@@ -261,7 +266,7 @@ mod tests {
         // Construct new vehicle arrival times.
         let veh_arrival_times = vec!(12000, 21000);
 
-        // Set the simulation vehicle arrival times.
+        // Set the simulation vehicle arrival times.Car::new(0u64, Direction::Up, speed, Action::Deccelerate))
         sim.set_veh_arrival_times(veh_arrival_times);
         assert_eq!(sim.veh_arrival_times, vec!(12000, 21000));
     }
@@ -313,7 +318,7 @@ mod tests {
         sim.set_state(Box::new(state));
 
         let actual= sim.next_event();
-        assert_eq!(actual.0, 0 as Time + TimeDelta::from((-1.0) * (speed / DECCELERATION_VALUE)));
+        assert_eq!(actual.0, timestamp + TimeDelta::from((-1.0) * (speed / DECCELERATION_VALUE)));
     }
 
     #[test]
@@ -329,7 +334,7 @@ mod tests {
         sim.set_state(Box::new(state));
 
         let actual = sim.next_event();
-        assert_eq!(actual.0, 0 as Time + TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
+        assert_eq!(actual.0, timestamp + TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
 
     #[test]
