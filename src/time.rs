@@ -1,5 +1,5 @@
 
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, AddAssign};
 use std::convert::Into;
 use serde::{Serialize, Deserialize};
 
@@ -63,6 +63,14 @@ impl Add<Time> for &'_ TimeDelta {
     }
 }
 
+impl Add<TimeDelta> for Time {
+    type Output = Time;
+
+    fn add(self, rhs: TimeDelta) -> Self::Output {
+        rhs.0 + self
+    }
+}
+
 impl Add<Time> for TimeDelta {
     type Output = Time;
 
@@ -79,8 +87,11 @@ impl Mul<Speed> for &'_ TimeDelta {
     }
 }
 
-
-
+impl AddAssign<TimeDelta> for Time {
+    fn add_assign(&mut self, rhs: TimeDelta) {
+        *self += rhs.0;
+    }
+}
 
 #[cfg(test)]
 mod tests {
