@@ -17,6 +17,7 @@ pub type ID = u64;
 pub type Length = f32;
 pub type Speed = f32;
 pub type Acceleration = f32;
+pub type Position = Length;
 
 pub use road::*;
 pub use config::get_zebra_config;
