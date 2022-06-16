@@ -156,14 +156,14 @@ impl Vehicle for Car {
         let mut minimum_distance: f32 = std::f32::INFINITY;
         let mut next_c: &Crossing = &pairs[0].0;
         let mut next_p: &f32 = &pairs[0].1;
-        let mut distance: f32 = (next_p - self.get_position()).abs();
+        let mut distance: f32 = (next_p - self.get_veh_position()).abs();
         let mut minimum_distance: f32 = distance;
 
         for (cross, pos) in &pairs[1..] {
             next_p = pos;
             next_c = cross;
-            distance = (pos - self.get_position()).abs();
-            if distance < minimum_distance && pos > &self.get_position() {
+            distance = (pos - self.get_veh_position()).abs();
+            if distance < minimum_distance && pos > &self.get_veh_position() {
                 minimum_distance = distance;
             }
         }
@@ -329,8 +329,8 @@ mod tests {
     fn test_next_crossing(){
 
         let crossings = vec![
-	        (Crossing::Zebra { cross_time: TimeDelta::from_secs(25) }, 10.0),
-	        (Crossing::Zebra { cross_time: TimeDelta::from_secs(10) }, 20.0),
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 20.0),
 	    ];
 
         let road = Road::new(30.0f32, crossings);
@@ -352,8 +352,6 @@ mod tests {
         assert_eq!(next_data.1, &10.0);
 
     }
-}
-
 
     #[test]
     fn test_car_as_obstacle(){

@@ -207,11 +207,11 @@ impl Simulation for EventDrivenSim {
                 EventResult::RemovePedestrian
             }
             LightsToRed(idx) => {
-                let (crossing, _) = &self.road.get_crossings(Direction::Up)[idx];
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
                 EventResult::CrossingChange(crossing)
             }
             LightsToGreen(idx) => {
-                let (crossing, _) = &self.road.get_crossings(Direction::Up)[idx];
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
                 EventResult::CrossingChange(crossing)
             }
             StopSimulation => {
