@@ -3,12 +3,13 @@ use rand::rngs::StdRng;
 use crate::events::{Event, EventResult, EventType};
 use crate::pedestrian::Person;
 use rand::distributions::WeightedIndex;
+use rand::prelude::Distribution;
 
 use crate::{ID, Time, pedestrian};
 use crate::pedestrian::Pedestrian;
 use crate::time::{TimeDelta, TIME_RESOLUTION};
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE};
+use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE, MAX_SPEED};
 use crate::road::{Road, Direction};
 use crate::state::{State, SimulatorState};
 
@@ -110,10 +111,36 @@ impl EventDrivenSim {
 
     // }
 
-    fn new_vehicle(&mut self) -> &dyn Vehicle { todo!() }
-    fn new_pedestrian(&mut self) -> &dyn Person { todo!() }
-    fn remove_vehicle(&mut self, idx: usize) { todo!() }
-    fn remove_pedestrian(&mut self, idx: usize) { todo!() }
+    fn new_vehicle(&mut self) -> &dyn Vehicle {
+        let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
+        let direction = if direction_dist.sample(self.rng) == 0{
+            Direction::Up
+        } else {
+            Direction::Down
+        };
+
+        let vehicle = Car::new(0, direction, MAX_SPEED, Action::StaticSpeed);
+        let idx = self.state.push_vehicle(Box::new(vehicle));
+        self.state.get_vehicle(idx)
+    }
+    fn new_pedestrian(&mut self) -> &dyn Person {
+        let n_crossings = self.road.get_crossings(Direction::Up).len();
+        let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
+        let (ref crossing, _) = self.road.get_crossings(Direction::Up)[idx_dist.sample(self.rng)];
+
+        let id = self.ped_counter;
+        self.ped_counter += 1;
+
+        let pedestrian = Pedestrian::new(id, crossing, *self.state.timestamp());
+        let idx =self.state.push_pedestrian(pedestrian);
+        self.state.get_pedestrian(idx)
+    }
+    fn remove_vehicle(&mut self, idx: usize) {
+        self.state.pop_vehicle(idx);
+    }
+    fn remove_pedestrian(&mut self, idx: usize) {
+        self.state.pop_pedestrian(idx);
+    }
 
 }
 
@@ -162,7 +189,7 @@ impl Simulation for EventDrivenSim {
 
     // roll state forward by time interval
     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
-
+        self.state.update(time_delta);
     }
 
     // update state
