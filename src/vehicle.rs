@@ -214,9 +214,6 @@ impl Vehicle for Car {
 
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
-        // TODO NEXT: Rewrite this using the vehicle ID.
-        panic!();
-
         let my_direction = &self.get_direction();
         if vehicles.len() == 0 {
             return Option::None
@@ -226,10 +223,8 @@ impl Vehicle for Car {
             if matches!(vehicle.get_direction(), my_direction) {
                 continue;
             }
-            // TODO. TEST &/or FIX THIS!
-            // WARNING!!
+
             // This assumes vehicles are ordered by increasing position.
-            // But they might not be!
             if &vehicle.get_veh_position() < &self.get_veh_position() {
                 continue;
             }
