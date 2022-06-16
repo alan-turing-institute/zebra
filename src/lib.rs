@@ -7,7 +7,7 @@ mod vehicle;
 mod simulation;
 mod config;
 mod events;
-mod event_driven_sim;
+pub mod event_driven_sim;
 
 pub use time::TimeDelta;
 
