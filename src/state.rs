@@ -6,8 +6,12 @@ use crate::road::{Direction, Crossing};
 use crate::pedestrian::Pedestrian;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
+use std::collections;
+use std::collections::vec_deque::IterMut;
 
 pub trait State {
+
+    fn update(&mut self, delta_t: TimeDelta);
 
     // fn get_vehicles(&self) -> &[dyn Vehicle];
     fn timestamp(&self) -> &Time;
@@ -94,6 +98,11 @@ impl<'a> SimulatorState<'a> {
 
 impl<'a> State for SimulatorState<'a> {
 
+    fn update(&mut self, delta_t: TimeDelta) {
+        self.timestamp += delta_t;
+        self.vehicles.iter_mut().for_each(|veh| veh.roll_forward_by(delta_t));
+    }
+
     fn timestamp(&self) -> &Time {
         &self.timestamp
     }
@@ -140,6 +149,8 @@ impl<'a> State for SimulatorState<'a> {
     fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
         todo!()
     }
+
+
 }
 
 #[cfg(test)]
