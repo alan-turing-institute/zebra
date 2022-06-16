@@ -6,7 +6,7 @@ use std::cmp::{Ord, Eq, Ordering};
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum EventType<'a> {
+pub enum EventType {
     VehicleArrival,
     VehicleExit(usize),
     SpeedLimitReached(usize),
@@ -35,16 +35,16 @@ pub enum EventResult<'a> {
 }
 
 
-pub struct Event<'a>(pub Time, pub EventType<'a>);
+pub struct Event(pub Time, pub EventType);
 
-impl<'a> PartialEq for Event<'a> {
+impl PartialEq for Event {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
-impl<'a> Eq for Event<'a> {}
+impl Eq for Event {}
 
-impl<'a> PartialOrd for Event<'a> {
+impl PartialOrd for Event {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         use Ordering::*;
         if self.0 > other.0 {
@@ -57,7 +57,7 @@ impl<'a> PartialOrd for Event<'a> {
     }
 }
 
-impl<'a> Ord for Event<'a> {
+impl Ord for Event {
     fn cmp(&self, other: &Self) -> Ordering {
         use Ordering::*;
         if self.0 > other.0 {

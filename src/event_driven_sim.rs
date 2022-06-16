@@ -121,7 +121,7 @@ impl EventDrivenSim {
 
 impl Simulation for EventDrivenSim {
     // get time interval until next event
-    fn next_event(&mut self) -> Event<'_> {
+    fn next_event(&mut self) -> Event {
 
         // get min of pedestrian and vehicle arrival times
         // let min_ped_times = self.ped_arrival_times.iter().min().unwrap();
@@ -167,7 +167,7 @@ impl Simulation for EventDrivenSim {
 
     }
 
-    fn handle_event<'a>(&mut self, event: Event<'a>) -> EventResult<'a> {
+    fn handle_event(&mut self, event: Event) -> EventResult<'_> {
         use EventType::*;
         match event.1 {
             VehicleArrival => {
