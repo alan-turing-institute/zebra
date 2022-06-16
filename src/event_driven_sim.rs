@@ -1,4 +1,3 @@
-use core::ffi::c_int;
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 use crate::events::{Event, EventResult, EventType};
@@ -90,40 +89,39 @@ impl EventDrivenSim {
 
     fn new_vehicle(&mut self) -> &dyn Vehicle { todo!() }
     fn new_pedestrian(&mut self) -> &dyn Person { todo!() }
-    fn remove_vehicle(&mut self, vehicle: &dyn Vehicle) { todo!() }
-    fn remove_pedestrian(&mut self, pedestrian: &dyn Person) { todo!() }
+    fn remove_vehicle(&mut self, idx: usize) { todo!() }
+    fn remove_pedestrian(&mut self, idx: usize) { todo!() }
 
 }
 
 impl Simulation for EventDrivenSim {
-
     // get time interval until next event
-    fn time_to_next_event(&self) -> TimeDelta {
+    fn next_event(&mut self) -> Event<'_> {
 
         // get min of pedestrian and vehicle arrival times
         // let min_ped_times = self.ped_arrival_times.iter().min().unwrap();
         // let min_veh_times = self.veh_arrival_times.iter().min().unwrap();
 
         let curr_time = *self.state.timestamp();
-        let mut events= vec![self.end_time];
+        let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
         if let Some(&arrival_time) = self.ped_arrival_times.get(self.ped_arrival_idx+1) {
-            events.push(arrival_time);
+            events.push(Event(arrival_time, EventType::PedestrianArrival));
         }
         if let Some(&arrival_time) = self.veh_arrival_times.get(self.veh_arrival_idx+1) {
-            events.push(arrival_time);
+            events.push(Event(arrival_time, EventType::VehicleArrival));
         }
 
         let curr_vehicles = self.state.get_vehicles();
-        for vehicle in curr_vehicles {
+        for (i, vehicle) in curr_vehicles.iter().enumerate() {
             let accel = vehicle.get_acceleration();
             if accel > 0.0 {
                 let speed_delta = vehicle::MAX_SPEED - vehicle.get_speed();
                 let t_delta = TimeDelta::from(speed_delta / accel);
-                events.push(curr_time + t_delta);
+                events.push(Event(curr_time + t_delta, EventType::SpeedLimitReached(i)));
             } else if accel < 0.0 {
                 let t_delta = TimeDelta::from(vehicle.get_speed() / -vehicle.get_acceleration());
-                events.push(curr_time + t_delta);
+                events.push(Event(curr_time + t_delta, EventType::ZeroSpeedReached(i)));
             }
 
             // Logic to check for obstacle events
@@ -131,8 +129,7 @@ impl Simulation for EventDrivenSim {
         }
 
         // This is infallible since the vector always contains the termination time
-        let min_time = events.iter().min().unwrap();
-        TimeDelta::from(min_time - curr_time)
+        events.into_iter().min().unwrap()
     }
 
     // roll state forward by time interval
@@ -145,41 +142,48 @@ impl Simulation for EventDrivenSim {
 
     }
 
-    fn handle_event(&mut self, event: Event<'_>) -> EventResult<'_> {
+    fn handle_event<'a>(&mut self, event: Event<'a>) -> EventResult<'a> {
         use EventType::*;
         match event.1 {
             VehicleArrival => {
                 EventResult::NewVehicle(self.new_vehicle())
             }
             VehicleExit(vehicle) => {
-                self.remove_vehicle(vehicle);
+                self.remove_vehicle(i);
                 EventResult::RemoveVehicle
             }
-            SpeedLimitReached(vehicle) => {
+            SpeedLimitReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
                 vehicle.action(Action::StaticSpeed);
-                EventResult::VehicleChange(vehicle)
+                EventResult::VehicleChange(&*vehicle)
             }
-            ZeroSpeedReached(vehicle) => {
+            ZeroSpeedReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
                 vehicle.action(Action::StaticSpeed);
-                EventResult::VehicleChange(vehicle)
+                EventResult::VehicleChange(&*vehicle)
             }
-            ReactionToObstacle(vehicle) => {
-                EventResult::VehicleChange(vehicle)
+            ReactionToObstacle(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
+
+                EventResult::VehicleChange(&*vehicle)
             }
             PedestrianArrival => {
                 EventResult::NewPedestrian(self.new_pedestrian())
             }
-            PedestrianExit(person) => {
+            PedestrianExit(idx) => {
+                self.remove_pedestrian(idx);
                 EventResult::RemovePedestrian
             }
-            LightsToRed(crossing) => {
+            LightsToRed(idx) => {
+                let (crossing, _) = &self.road.get_crossings()[idx];
                 EventResult::CrossingChange(crossing)
             }
-            LightsToGreen(crossing) => {
+            LightsToGreen(idx) => {
+                let (crossing, _) = &self.get_crossings()[idx];
                 EventResult::CrossingChange(crossing)
             }
             StopSimulation => {
-
+                EventResult::NoEffect
             }
             _ => unreachable!()
         }

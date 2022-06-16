@@ -8,16 +8,16 @@ use std::cmp::{Ord, Eq, Ordering};
 #[non_exhaustive]
 pub enum EventType<'a> {
     VehicleArrival,
-    VehicleExit(&'a mut dyn Vehicle),
-    SpeedLimitReached(&'a mut  dyn Vehicle),
-    ZeroSpeedReached(&'a mut dyn Vehicle),
-    ReactionToObstacle(&'a mut dyn Vehicle),
+    VehicleExit(usize),
+    SpeedLimitReached(usize),
+    ZeroSpeedReached(usize),
+    ReactionToObstacle(usize),
 
     PedestrianArrival,
-    PedestrianExit(&'a mut dyn Person),
+    PedestrianExit(usize),
 
-    LightsToRed(&'a mut Crossing),
-    LightsToGreen(&'a mut Crossing),
+    LightsToRed(usize),
+    LightsToGreen(usize),
 
     StopSimulation
 }
