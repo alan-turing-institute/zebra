@@ -50,37 +50,6 @@ impl Serialize for SimulatorState <'_> {
     }
 }
 
-// 1. New struct (SerializedState) to hold data at a given timestamp
-// 2. SerializedState.read(SimulatorState) 
-// 3. Annotate the owned data in SerializedState with #[derive(Serialize, Deserialize)]
-// How does serde handle dynamic objects?
-// #[derive(Serialize)]
-// pub struct SerializedState <'a> {
-//     // vehicles: Vec<Vehicle>,
-//     pedestrians: Vec<Pedestrian<'a>>,
-
-// }
-// ----
-// use serde::ser::{Serialize, Serializer, SerializeSeq, SerializeMap};
-// use serde::ser::{Serializer, SerializeSeq, SerializeMap};
-// impl Serialize for Vec<Pedestrian<'a>>
-// // where
-// //T: Serialize,
-// {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         let mut seq = serializer.serialize_seq(Some(self.len()))?;
-//         for e in self {
-//             seq.serialize_element(e)?;
-//         }
-//         seq.end()
-//     }
-// }
-
-// ----
-
 impl<'a> SimulatorState<'a> {
 
     // Constructor for the initial state at time 0.
