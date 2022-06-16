@@ -228,6 +228,8 @@ impl Vehicle for Car {
             }
             return Option::Some(vehicle)
         }
+
+        // If this vehicle is in front of all the others, return None.
         Option::None
     }
 }
