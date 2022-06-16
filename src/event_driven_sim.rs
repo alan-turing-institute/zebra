@@ -9,7 +9,7 @@ use crate::pedestrian::Pedestrian;
 use crate::time::{TimeDelta, TIME_RESOLUTION};
 use crate::simulation::{Simulation, arrival_times};
 use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE};
-use crate::road::{Road, Direction};
+use crate::road::{Road, Direction, Crossing};
 use crate::state::{State, SimulatorState};
 
 pub struct EventDrivenSim {
@@ -224,6 +224,25 @@ impl Simulation for EventDrivenSim {
     fn get_road(&self) -> &Road {
         &self.road
     }
+
+    fn run(&mut self) -> () {
+
+        let mut t: i64 = 0;
+        let mut delta: TimeDelta = TimeDelta::new(0);
+        let mut next_e: Event;
+        let mut delta: TimeDelta = TimeDelta::new(0);
+        while (t < self.end_time) {
+
+            next_e = self.next_event();
+            delta = TimeDelta::new(next_e.0 - t);
+            self.roll_forward_by(delta);
+            self.instantaneous_update();
+            let delta_conv: f32 = delta.into();
+            t = t + delta_conv as i64;
+            println!("{}", delta_conv);
+        }
+        
+    }
 }
 
 
@@ -367,4 +386,29 @@ mod tests {
     //
     // Test the static helper functions.
     //
+
+    #[test]
+    fn test_integration_two_zebras() {
+
+        let crossings = vec![
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(10) }, 170.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 290.0),
+	    ];
+
+        let road = Road::new(300.0f32, crossings);
+
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.2, road);
+
+        sim.run();       
+    
+    
+    }
+
+    #[test]
+    fn test_integration_three_zebras() {
+    
+    
+    }
+
 }
+

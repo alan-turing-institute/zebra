@@ -41,6 +41,9 @@ pub trait Simulation {
     //     }
     // }
     fn get_road(&self) -> &Road;
+
+    fn run(&mut self) -> ();
+
 }
 
 // MOVED TO EventDrivenSim
