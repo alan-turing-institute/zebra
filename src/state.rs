@@ -39,6 +39,21 @@ pub trait State {
 
 }
 
+impl Serialize for dyn State {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Number of fields in the struct and name.
+        let mut state = serializer.serialize_struct("State", 3)?;
+        state.serialize_field("timestamp", &self.timestamp())?;
+        state.serialize_field("pedestrians", &self.get_pedestrians())?;
+        state.serialize_field("vehicles", &self.get_vehicles())?;
+        state.end()
+    }
+}
+
+
 pub struct SimulatorState<'a> {
 
     vehicles: VecDeque<Box<dyn Vehicle>>,

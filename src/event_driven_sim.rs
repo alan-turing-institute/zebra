@@ -30,7 +30,8 @@ pub struct EventDrivenSim {
     // dist: WeightedIndex<T>,
 
     road: Road,
-    state: Box<dyn State>
+    pub state: Box<dyn State>
+    // pub state: SimulatorState
 }
 
 impl EventDrivenSim {

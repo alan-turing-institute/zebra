@@ -3,9 +3,10 @@ use serde::{Serialize, Deserialize};
 
 use crate::obstacle::Obstacle;
 use crate::{ID, TimeDelta};
-
-type Length = f32;
-type Position = Length;
+use crate::config::get_zebra_config;
+use crate::{Length, Position};
+// type Length = f32;
+// type Position = Length;
 
 #[derive(Copy,Clone,Serialize,Deserialize)]
 pub enum Direction {
@@ -118,11 +119,34 @@ pub struct Road {
 impl Road {
 
     // Here the position of the crossings is assumed to be in the `Up` direction.
-    pub fn new(length: Length, crossings: Vec<(Crossing, Position)>) -> Road {
+    pub fn new(length: Length) -> Road {
 
-        for (_, position) in crossings.iter() {
-            assert!(0.0 <= *position && *position <= length);
-        }
+    // Load from zebra.toml
+    let config = get_zebra_config();
+
+    // 
+    let mut crossing_id: ID= 0;
+    let mut crossings: Vec<(Crossing, Position)> = Vec::new();
+    for &crossing in &config.zebra_crossings {
+        crossings.push(
+            (Crossing::zebra(crossing_id), crossing)
+        );
+        crossing_id += 1;
+    }
+    for &crossing in &config.pelican_crossings {
+        crossings.push(
+            (Crossing::pelican(crossing_id), crossing)
+        );
+        crossing_id += 1;
+    }
+
+    // Sort crossings by position (second element of tuple)
+    crossings.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.1, &y.1).unwrap());
+
+    // Check valid crossings
+    for (_, position) in crossings.iter() {
+        assert!(0.0 <= *position && *position <= length);
+    }
 
 	let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
 	let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
@@ -184,6 +208,8 @@ mod tests {
         let test_pelican = Crossing::pelican(0);
         assert_eq!(test_pelican.arrival_to_stop_time(), WAIT_TIME);
     }
+
+    // TODO: test for road crossings in order
 
     #[test]
     fn test_road_constructor() {
