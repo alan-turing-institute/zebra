@@ -1,6 +1,6 @@
 use crate::Time;
 use crate::time::{TimeDelta,TIME_RESOLUTION};
-use crate::road::Direction;
+use crate::road::{Road, Direction};
 use crate::state::State;
 use crate::obstacle::Obstacle;
 
@@ -20,10 +20,12 @@ pub trait Vehicle : Obstacle {
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
+    fn get_veh_position(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
     fn relative_speed(&self, obstacle: &dyn Obstacle) -> f32;
-    fn relative_position(&self,obstacle: &dyn Obstacle) -> f32;
+    fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
+    fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
     fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32;
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
@@ -56,7 +58,7 @@ impl Car {
 
 impl Obstacle for Car{
 
-    fn get_position(&self) -> f32 {
+    fn get_position(&self, road: &Road) -> f32 {
         self.position
     }
 
@@ -82,6 +84,10 @@ impl Vehicle for Car {
         self.direction
     }
 
+    fn get_veh_position(&self) -> f32 {
+        self.position
+    }
+
     fn action(&mut self, action:Action) {
         match action {
             Action::Accelerate  => self.acceleration = ACCELERATION_VALUE,
@@ -104,13 +110,24 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
-    fn relative_position(&self,obstacle: &dyn Obstacle)-> f32 {
+    fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road)-> f32 {
 
-        // Positive relative_position means obstacle in front of car
-        let relative_position: f32= obstacle.get_position() - &self.get_position();
+        // Negative relative_position means obstacle in front of car
+        let relative_position: f32 = &self.get_veh_position() - obstacle.get_position(road);
 
-        // We should never need to have a negative position (looking behind)
-        assert!(relative_position >= 0.0);
+        // We should never need to have a positive relative position (looking behind)
+        assert!(relative_position <= 0.0);
+
+        relative_position
+    }
+
+    fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32 {
+
+        // Negative relative_position means obstacle in front of car
+        let relative_position: f32 = &self.get_veh_position() - vehicle.get_veh_position();
+
+        // We should never need to have a positive relative position (looking behind)
+        assert!(relative_position <= 0.0);
 
         relative_position
     }
@@ -118,12 +135,12 @@ impl Vehicle for Car {
     fn relative_speed(&self,obstacle: &dyn Obstacle)-> f32 {
 
         // Positive relative_speed means obstacle is faster than car
-        obstacle.get_speed() - &self.get_speed()
+        &self.get_speed() - obstacle.get_speed()
     }
 
     fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32 {
 
-        obstacle.get_acceleration() - &self.get_acceleration()
+        &self.get_acceleration() - obstacle.get_acceleration()
     }
 
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
@@ -141,7 +158,7 @@ impl Vehicle for Car {
             // WARNING!!
             // This assumes vehicles are ordered by increasing position.
             // But they might not be!
-            if &vehicle.get_position() < &self.get_position() {
+            if &vehicle.get_veh_position() < &self.get_veh_position() {
                 continue;
             }
             return Option::Some(vehicle)
@@ -161,7 +178,7 @@ fn spawn_car_take_action(init_action:Action, init_speed:f32){
     let seconds: f32 = test_secs.into();
     assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
 
-    assert!(test_car.get_position() > 0.0);
+    assert!(test_car.get_veh_position() > 0.0);
 
     if matches!(init_action, Action::Accelerate){
         assert_eq!(test_car.get_acceleration(), ACCELERATION_VALUE);
@@ -177,7 +194,7 @@ mod tests {
     #[test]
     fn test_car_postion(){
         let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
-        assert_eq!(test_car.get_position(), 0.0);
+        assert_eq!(test_car.get_veh_position(), 0.0);
     }
 
     #[test]
@@ -192,7 +209,7 @@ mod tests {
         test_car.action(Action::StaticSpeed);
         test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
-        assert_eq!(test_car.get_position(), 0.0);
+        assert_eq!(test_car.get_veh_position(), 0.0);
         assert_eq!(test_car.get_acceleration(), 0.0);
     }
 
@@ -211,17 +228,20 @@ mod tests {
 
     #[test]
     fn test_car_as_obstacle(){
-        let mut test_car = Car::new(Direction::Up, 5.0,Action::StaticSpeed);
-        let mut test_obstacle_car = Car::new(Direction::Up, 10.0,Action::StaticSpeed);
+
+        // Subject car is going slower than the obstacle.
+        let mut test_car = Car::new(Direction::Up, 5.0, Action::StaticSpeed);
+        let mut test_obstacle_car = Car::new(Direction::Up, 10.0, Action::StaticSpeed);
+
+        // Roll both cars forward 5s.
         test_car.roll_forward_by(TimeDelta::new(5000));
         test_obstacle_car.roll_forward_by(TimeDelta::new(5000));
 
-        let relative_position: f32 = test_car.relative_position(&test_obstacle_car);
-
+        let relative_position: f32 = test_car.relative_veh_position(&test_obstacle_car);
         let relative_speed: f32 = test_car.relative_speed(&test_obstacle_car);
 
-        assert_eq!(relative_position, 25.0);
-        assert_eq!(relative_speed, 5.0);
+        assert_eq!(relative_position, -25.0);
+        assert_eq!(relative_speed, -5.0);
     }
 }
 

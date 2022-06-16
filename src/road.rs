@@ -2,6 +2,7 @@
 use serde::{Serialize, Deserialize};
 
 use crate::TimeDelta;
+use crate::obstacle::Obstacle;
 
 type Length = f32;
 type Position = Length;
@@ -65,6 +66,21 @@ impl Crossing {
         }
     }
 
+}
+
+impl Obstacle for Crossing {
+
+    fn get_position(&self, road: &Road) -> f32 {
+        0.0 // TRICKY
+    }
+
+    fn get_speed(&self) -> f32 {
+        0.0
+    }
+
+    fn get_acceleration(&self) -> f32 {
+        0.0
+    }
 }
 
 pub struct Road {
