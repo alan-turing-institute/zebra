@@ -6,7 +6,7 @@ use std::fs;
 use std::collections::HashMap;
 use std::default::Default;
 
-use clap::lazy_static;
+// use clap::lazy_static;
 use toml;
 
 use serde::{Serialize, Deserialize};

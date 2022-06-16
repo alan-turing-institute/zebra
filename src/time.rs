@@ -87,6 +87,7 @@ impl Mul<Speed> for &'_ TimeDelta {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
