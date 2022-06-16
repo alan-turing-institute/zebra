@@ -8,7 +8,7 @@ use crate::{ID, Time, pedestrian};
 use crate::pedestrian::Pedestrian;
 use crate::time::{TimeDelta, TIME_RESOLUTION};
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE};
+use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE, DECCELERATION_VALUE};
 use crate::road::{Road, Direction};
 use crate::state::{State, SimulatorState};
 use crate::obstacle::Obstacle;
@@ -116,29 +116,34 @@ impl EventDrivenSim {
     fn remove_vehicle(&mut self, idx: usize) { todo!() }
     fn remove_pedestrian(&mut self, idx: usize) { todo!() }
 
-    fn time_to_obstacle_event(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> f32 {
+    fn time_to_obstacle_event(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> Option<f32> {
 
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
-        let rel_position = vehicle.relative_position(obstacle, &self.get_road(), vehicle.get_direction());
+        let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+        let buffer_zone: f32 = vehicle.get_buffer_zone();
 
-        if rel_accel < 0 {
+        if rel_accel < 0.0 {
             // Obstacle is accelerating away from the vehicle.
-            return f32::INFINITY
-        }
-        if rel_accel == 0 {
+            None
+
+        } else if rel_accel == 0.0 {
 
             // Obstacle is receding and we're not relatively accelerating.
-            if rel_speed <= 0 {
-                return f32::INFINITY
+            if rel_speed <= 0.0 {
+                None
+            } else{
+                // We are at max speed, what time will we be in the braking zone 
+                Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
             }
-            return rel_position / rel_speed;
-        }
-        if rel_accel > 0 {
+            
 
-        }
+        } else if rel_accel > 0.0 {
+            // We are accelerating, what time will we be in the braking zone
+            Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
 
-        0.0
+        } else {unreachable!()}
+
     }
 }
 
@@ -179,10 +184,15 @@ impl Simulation for EventDrivenSim {
             // Logic to check for obstacle events
             let crossing_obstacle = vehicle.next_crossing();
             let vehicle_obstacle = vehicle.next_vehicle();
-            let t_delta_crossing = self.time_to_obstacle_event(crossing_obstacle);
-            let t_delta_vehicle = self.time_to_obstacle_event(vehicle_obstacle);
-            let t_delta = t_delta_crossing.min(t_delta_vehicle);
-            events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+            if let Some(t_delta_crossing) = self.time_to_obstacle_event(crossing_obstacle) {
+                let t_delta = TimeDelta::from(t_delta_crossing);
+                events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+            }
+            if let Some(t_delta_vehicle) = self.time_to_obstacle_event(vehicle_obstacle){
+                let t_delta = TimeDelta::from(t_delta_vehicle);
+                events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+            }
+            
         }
 
 
