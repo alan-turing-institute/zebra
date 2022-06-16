@@ -16,6 +16,7 @@ use crate::state::{State, SimulatorState};
 pub struct EventDrivenSim {
 
     seed: u64,
+    rng: StdRng,
 
     start_time: Time,
     end_time: Time,
@@ -69,6 +70,7 @@ impl EventDrivenSim {
 
         let sim = EventDrivenSim {
             seed,
+            rng,
             start_time,
             end_time,
             ped_arrival_rate,
@@ -113,7 +115,7 @@ impl EventDrivenSim {
 
     fn new_vehicle(&mut self) -> &dyn Vehicle {
         let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
-        let direction = if direction_dist.sample(self.rng) == 0{
+        let direction = if direction_dist.sample(&mut self.rng) == 0{
             Direction::Up
         } else {
             Direction::Down
@@ -124,9 +126,9 @@ impl EventDrivenSim {
         self.state.get_vehicle(idx)
     }
     fn new_pedestrian(&mut self) -> &dyn Person {
-        let n_crossings = self.road.get_crossings(Direction::Up).len();
+        let n_crossings = self.road.get_crossings(&Direction::Up).len();
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
-        let (ref crossing, _) = self.road.get_crossings(Direction::Up)[idx_dist.sample(self.rng)];
+        let (ref crossing, _) = self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
 
         let id = self.ped_counter;
         self.ped_counter += 1;
