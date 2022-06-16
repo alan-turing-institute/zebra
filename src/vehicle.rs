@@ -18,7 +18,7 @@ pub enum Action {
 }
 
 
-pub trait Vehicle {
+pub trait Vehicle : Obstacle {
     fn get_id(&self) -> ID;
     fn set_id(&mut self, id: ID);
     fn get_length(&self) -> f32;
@@ -45,7 +45,7 @@ impl Serialize for dyn Vehicle {
         state.serialize_field("length", &self.get_length())?;
         state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
         state.serialize_field("direction", &self.get_direction())?;
-        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("position", &self.get_veh_position())?;
         state.serialize_field("speed", &self.get_speed())?;
         state.serialize_field("acceleration", &self.get_acceleration())?;
         state.end()
@@ -214,7 +214,7 @@ impl Serialize for Car {
         state.serialize_field("length", &self.get_length())?;
         state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
         state.serialize_field("direction", &self.get_direction())?;
-        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("position", &self.get_veh_position())?;
         state.serialize_field("speed", &self.get_speed())?;
         state.serialize_field("acceleration", &self.get_acceleration())?;
         state.end()
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_car_postion(){
-        let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
+        let test_car = Car::new(0, Direction::Up, 13.0,Action::Accelerate);
         assert_eq!(test_car.get_veh_position(), 0.0);
     }
 
@@ -298,8 +298,8 @@ mod tests {
     fn test_car_as_obstacle(){
 
         // Subject car is going slower than the obstacle.
-        let mut test_car = Car::new(Direction::Up, 5.0, Action::StaticSpeed);
-        let mut test_obstacle_car = Car::new(Direction::Up, 10.0, Action::StaticSpeed);
+        let mut test_car = Car::new(0, Direction::Up, 5.0, Action::StaticSpeed);
+        let mut test_obstacle_car = Car::new(0, Direction::Up, 10.0, Action::StaticSpeed);
 
         // Roll both cars forward 5s.
         test_car.roll_forward_by(TimeDelta::new(5000));

@@ -97,6 +97,7 @@ impl Obstacle for Crossing {
 
         // TODO.
         // road.get_crossing_position(id, direction)
+        0.0
     }
 
     fn get_speed(&self) -> f32 {
@@ -139,8 +140,8 @@ impl Road {
     {
 	match direction {
 	    Direction::Up => &self.crossings_up,
-	    Direction::Down => &self.crossings_down 
-	}	
+	    Direction::Down => &self.crossings_down
+	}
     }
 
 }
