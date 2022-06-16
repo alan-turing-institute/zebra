@@ -126,7 +126,12 @@ impl Road {
             assert!(0.0 <= *position && *position <= length);
         }
 
-        // TODO: check the ordering of the ids is correct.
+        // Assert the ordering of the ids is correct.
+        let mut i: ID = 0 as ID;
+        for (crossing, _) in &crossings {
+            assert_eq!(crossing.get_id(), i);
+            i += 1;
+        }
 
         let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
         let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
@@ -139,44 +144,44 @@ impl Road {
     // Here the position of the crossings is assumed to be in the `Up` direction.
     pub fn config_new() -> Road {
 
-    // Load from zebra.toml
-    let config = get_zebra_config();
+        // Load from zebra.toml
+        let config = get_zebra_config();
 
-    // Assign length from config
-    let length = config.road_length;
+        // Assign length from config
+        let length = config.road_length;
 
-    // Load in crossings
-    let mut crossings: Vec<(Crossing, Position)> = Vec::new();
-    for &crossing in &config.zebra_crossings {
-        crossings.push(
-            (Crossing::zebra(u64::max_value()), crossing)
-        );
-    }
-    for &crossing in &config.pelican_crossings {
-        crossings.push(
-            (Crossing::pelican(u64::max_value()), crossing)
-        );
-    }
+        // Load in crossings
+        let mut crossings: Vec<(Crossing, Position)> = Vec::new();
+        for &crossing in &config.zebra_crossings {
+            crossings.push(
+                (Crossing::zebra(u64::max_value()), crossing)
+            );
+        }
+        for &crossing in &config.pelican_crossings {
+            crossings.push(
+                (Crossing::pelican(u64::max_value()), crossing)
+            );
+        }
 
-    // Sort crossings by position (second element of tuple)
-    crossings.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.1, &y.1).unwrap());
+        // Sort crossings by position (second element of tuple)
+        crossings.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.1, &y.1).unwrap());
 
-    let mut i = 0;
-    for (crossing, position) in &mut crossings {
-        crossing.set_id(i as ID);
-        i += 1;
-    }
+        let mut i = 0;
+        for (crossing, position) in &mut crossings {
+            crossing.set_id(i as ID);
+            i += 1;
+        }
 
-    // Check valid crossings
-    for (_, position) in &crossings {
-        assert!(0.0 <= *position && *position <= length);
-    }
+        // Check valid crossings
+        for (_, position) in &crossings {
+            assert!(0.0 <= *position && *position <= length);
+        }
 
-	let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
-	let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
-	for (crossing, position) in crossings.into_iter().rev() {
-	    crossings_down.push((crossing, length - position));
-	}
+        let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
+        let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
+        for (crossing, position) in crossings.into_iter().rev() {
+            crossings_down.push((crossing, length - position));
+        }
         Road { length, crossings_up, crossings_down }
     }
 
