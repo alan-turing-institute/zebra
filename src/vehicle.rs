@@ -1,8 +1,8 @@
-use crate::{Time, ID};
-use crate::time::TimeDelta;
-use crate::time::TIME_RESOLUTION;
-use crate::road::Direction;
+use crate::time::{TimeDelta,TIME_RESOLUTION};
+use crate::road::{Road, Direction};
 use crate::state::State;
+use crate::obstacle::Obstacle;
+use crate::{Time, ID};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 
@@ -18,17 +18,19 @@ pub enum Action {
 }
 
 
-pub trait Vehicle {
+pub trait Vehicle : Obstacle {
     fn get_id(&self) -> ID;
     fn set_id(&mut self, id: ID);
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
-    fn get_position(&self) -> f32;
-    fn get_speed(&self) -> f32;
-    fn get_acceleration(&self) -> f32;
+    fn get_veh_position(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
+    fn relative_speed(&self, obstacle: &dyn Obstacle) -> f32;
+    fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
+    fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
+    fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32;
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
@@ -43,7 +45,7 @@ impl Serialize for dyn Vehicle {
         state.serialize_field("length", &self.get_length())?;
         state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
         state.serialize_field("direction", &self.get_direction())?;
-        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("position", &self.get_veh_position())?;
         state.serialize_field("speed", &self.get_speed())?;
         state.serialize_field("acceleration", &self.get_acceleration())?;
         state.end()
@@ -77,6 +79,26 @@ impl Car {
     }
 }
 
+
+impl Obstacle for Car{
+
+    fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
+
+        // Check that the direction matches my direction.
+        let my_direction = &self.get_direction();
+        assert!(matches!(direction, my_direction));
+        self.position
+    }
+
+    fn get_speed(&self) -> f32 {
+        self.speed
+    }
+
+    fn get_acceleration(&self) -> f32 {
+        self.acceleration
+    }
+}
+
 impl Vehicle for Car {
     fn set_id(&mut self, id: ID) {
 	self.id = id;
@@ -95,16 +117,8 @@ impl Vehicle for Car {
         self.direction
     }
 
-    fn get_position(&self) -> f32 {
+    fn get_veh_position(&self) -> f32 {
         self.position
-    }
-
-    fn get_speed(&self) -> f32 {
-        self.speed
-    }
-
-    fn get_acceleration(&self) -> f32 {
-        self.acceleration
     }
 
     fn action(&mut self, action:Action) {
@@ -129,6 +143,39 @@ impl Vehicle for Car {
         assert!(self.speed >= 0.0);
     }
 
+    fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road)-> f32 {
+
+        // Negative relative_position means obstacle in front of car
+        let relative_position: f32 = &self.get_veh_position() - obstacle.get_position(road, &self.get_direction());
+
+        // We should never need to have a positive relative position (looking behind)
+        assert!(relative_position <= 0.0);
+
+        relative_position
+    }
+
+    fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32 {
+
+        // Negative relative_position means obstacle in front of car
+        let relative_position: f32 = &self.get_veh_position() - vehicle.get_veh_position();
+
+        // We should never need to have a positive relative position (looking behind)
+        assert!(relative_position <= 0.0);
+
+        relative_position
+    }
+
+    fn relative_speed(&self,obstacle: &dyn Obstacle)-> f32 {
+
+        // Positive relative_speed means obstacle is faster than car
+        &self.get_speed() - obstacle.get_speed()
+    }
+
+    fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32 {
+
+        &self.get_acceleration() - obstacle.get_acceleration()
+    }
+
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
         // TODO NEXT: Rewrite this using the vehicle ID.
@@ -147,7 +194,7 @@ impl Vehicle for Car {
             // WARNING!!
             // This assumes vehicles are ordered by increasing position.
             // But they might not be!
-            if &vehicle.get_position() < &self.get_position() {
+            if &vehicle.get_veh_position() < &self.get_veh_position() {
                 continue;
             }
             return Option::Some(vehicle)
@@ -155,7 +202,6 @@ impl Vehicle for Car {
         Option::None
     }
 }
-
 
 impl Serialize for Car {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -168,7 +214,7 @@ impl Serialize for Car {
         state.serialize_field("length", &self.get_length())?;
         state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
         state.serialize_field("direction", &self.get_direction())?;
-        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("position", &self.get_veh_position())?;
         state.serialize_field("speed", &self.get_speed())?;
         state.serialize_field("acceleration", &self.get_acceleration())?;
         state.end()
@@ -180,19 +226,19 @@ impl Serialize for Car {
 fn spawn_car_take_action(init_action:Action, init_speed:f32){
     let mut test_car = Car::new(0, Direction::Up, init_speed,init_action);
 
-        let mut test_secs = TimeDelta::new(1000);
-        test_car.roll_forward_by(test_secs);
+    let mut test_secs = TimeDelta::new(1000);
+    test_car.roll_forward_by(test_secs);
 
-        let seconds: f32 = test_secs.into();
-        assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
+    let seconds: f32 = test_secs.into();
+    assert_eq!(test_car.get_speed(), init_speed + seconds * test_car.get_acceleration());
 
-        assert!(test_car.get_position() > 0.0);
+    assert!(test_car.get_veh_position() > 0.0);
 
-        if matches!(init_action, Action::Accelerate){
-            assert_eq!(test_car.get_acceleration(), ACCELERATION_VALUE);
-        } else if matches!(init_action, Action::Deccelerate){
-            assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
-        }
+    if matches!(init_action, Action::Accelerate){
+        assert_eq!(test_car.get_acceleration(), ACCELERATION_VALUE);
+    } else if matches!(init_action, Action::Deccelerate){
+        assert_eq!(test_car.get_acceleration(), DECCELERATION_VALUE);
+    }
 
 }
 
@@ -216,7 +262,7 @@ mod tests {
     #[test]
     fn test_car_postion(){
         let test_car = Car::new(0, Direction::Up, 13.0,Action::Accelerate);
-        assert_eq!(test_car.get_position(), 0.0);
+        assert_eq!(test_car.get_veh_position(), 0.0);
     }
 
     #[test]
@@ -231,7 +277,7 @@ mod tests {
         test_car.action(Action::StaticSpeed);
         test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
-        assert_eq!(test_car.get_position(), 0.0);
+        assert_eq!(test_car.get_veh_position(), 0.0);
         assert_eq!(test_car.get_acceleration(), 0.0);
     }
 
@@ -246,8 +292,26 @@ mod tests {
     fn test_roll_forward_deceleration(){
         spawn_car_take_action(Action::Deccelerate, MAX_SPEED);
     }
-}
 
+
+    #[test]
+    fn test_car_as_obstacle(){
+
+        // Subject car is going slower than the obstacle.
+        let mut test_car = Car::new(0, Direction::Up, 5.0, Action::StaticSpeed);
+        let mut test_obstacle_car = Car::new(0, Direction::Up, 10.0, Action::StaticSpeed);
+
+        // Roll both cars forward 5s.
+        test_car.roll_forward_by(TimeDelta::new(5000));
+        test_obstacle_car.roll_forward_by(TimeDelta::new(5000));
+
+        let relative_position: f32 = test_car.relative_veh_position(&test_obstacle_car);
+        let relative_speed: f32 = test_car.relative_speed(&test_obstacle_car);
+
+        assert_eq!(relative_position, -25.0);
+        assert_eq!(relative_speed, -5.0);
+    }
+}
 
 
     // Test cases for roll forwards
