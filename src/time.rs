@@ -87,7 +87,13 @@ impl Mul<Speed> for &'_ TimeDelta {
     }
 }
 
+impl Add<TimeDelta> for Time {
+    type Output = Time;
 
+    fn add(self, rhs: TimeDelta) -> Self::Output {
+        self + rhs.0
+    }
+}
 
 
 #[cfg(test)]
