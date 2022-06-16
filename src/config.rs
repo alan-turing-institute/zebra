@@ -1,6 +1,6 @@
 use crate::road::Crossing;
 use crate::time::TimeDelta;
-use crate::Time;
+use crate::{Time, Position};
 
 use std::fs;
 use std::collections::HashMap;
@@ -82,8 +82,10 @@ pub struct ZebraConfig {
 
     /// Length of the road
     pub road_length: Length,
-    /// Definition of crossings
-    pub crossings: Vec<Crossing>,
+    
+    /// Definition of crossing positions
+    pub zebra_crossings: Vec<Position>,
+    pub pelican_crossings: Vec<Position>,
 
     // A "catch all" for any keys that we don't define explicitly.
     #[serde(flatten)]
@@ -102,7 +104,8 @@ impl Default for ZebraConfig {
             pelican_go_time: TimeDelta::from_secs(5),
             simulation: Default::default(),
             road_length: 1000.0,
-            crossings: Vec::new(),
+            zebra_crossings: Vec::new(),
+            pelican_crossings: Vec::new(),
             other: HashMap::new()
         }
     }

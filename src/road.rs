@@ -3,9 +3,10 @@ use serde::{Serialize, Deserialize};
 
 use crate::obstacle::Obstacle;
 use crate::{ID, TimeDelta};
-
-type Length = f32;
-type Position = Length;
+use crate::config::get_zebra_config;
+use crate::{Length, Position};
+// type Length = f32;
+// type Position = Length;
 
 #[derive(Copy,Clone,Serialize,Deserialize)]
 pub enum Direction {
@@ -13,14 +14,14 @@ pub enum Direction {
     Down
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Crossing {
     Zebra {
-	id: ID, // unique identifier
+	    id: ID, // unique identifier
         cross_time: TimeDelta
     },
     Pelican {
-	id: ID, // unique identifier
+	    id: ID, // unique identifier
         stop_time: TimeDelta, // time traffic is stopped
         wait_time: TimeDelta, // time from pressing button to stop
         go_time: TimeDelta // min time traffic flow before a stop can occur
@@ -50,11 +51,18 @@ impl Crossing {
     pub fn pelican(id: ID) -> Crossing
     {
         Crossing::Pelican {
-	    id,
+	        id,
             stop_time: CROSSING_TIME,
             wait_time: WAIT_TIME,
             go_time: GO_TIME
         }
+    }
+
+    pub fn set_id(&mut self, new_id: ID) {
+        match self {
+            Crossing::Zebra {ref mut id, ..} => *id = new_id,
+            Crossing::Pelican {ref mut id, ..} => *id = new_id,
+        };
     }
 
     pub fn get_id(&self) -> ID {
@@ -112,19 +120,68 @@ pub struct Road {
 }
 
 impl Road {
-
     // Here the position of the crossings is assumed to be in the `Up` direction.
     pub fn new(length: Length, crossings: Vec<(Crossing, Position)>) -> Road {
-
         for (_, position) in crossings.iter() {
             assert!(0.0 <= *position && *position <= length);
         }
 
-	let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
-	let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
-	for (crossing, position) in crossings.into_iter().rev() {
-	    crossings_down.push((crossing, length - position));
-	}
+        // Assert the ordering of the ids is correct.
+        let mut i: ID = 0 as ID;
+        for (crossing, _) in &crossings {
+            assert_eq!(crossing.get_id(), i);
+            i += 1;
+        }
+
+        let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
+        let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
+        for (crossing, position) in crossings.into_iter().rev() {
+            crossings_down.push((crossing, length - position));
+        }
+        Road { length, crossings_up, crossings_down }
+    }
+
+    // Here the position of the crossings is assumed to be in the `Up` direction.
+    pub fn config_new() -> Road {
+
+        // Load from zebra.toml
+        let config = get_zebra_config();
+
+        // Assign length from config
+        let length = config.road_length;
+
+        // Load in crossings
+        let mut crossings: Vec<(Crossing, Position)> = Vec::new();
+        for &crossing in &config.zebra_crossings {
+            crossings.push(
+                (Crossing::zebra(u64::max_value()), crossing)
+            );
+        }
+        for &crossing in &config.pelican_crossings {
+            crossings.push(
+                (Crossing::pelican(u64::max_value()), crossing)
+            );
+        }
+
+        // Sort crossings by position (second element of tuple)
+        crossings.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.1, &y.1).unwrap());
+
+        let mut i = 0;
+        for (crossing, position) in &mut crossings {
+            crossing.set_id(i as ID);
+            i += 1;
+        }
+
+        // Check valid crossings
+        for (_, position) in &crossings {
+            assert!(0.0 <= *position && *position <= length);
+        }
+
+        let crossings_up: Vec<(Crossing, Position)> = crossings.clone();
+        let mut crossings_down: Vec<(Crossing, Position)> = Vec::new();
+        for (crossing, position) in crossings.into_iter().rev() {
+            crossings_down.push((crossing, length - position));
+        }
         Road { length, crossings_up, crossings_down }
     }
 
@@ -157,6 +214,8 @@ impl Road {
 
 #[cfg(test)]
 mod tests {
+    use std::any::Any;
+
     use super::*;
 
     #[test]
@@ -195,33 +254,29 @@ mod tests {
 
     #[test]
     fn test_road_constructor() {
-
-        Road::new(20.0f32, Vec::new());
-
-        let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0)];
-        Road::new(20.0f32, crossings);
+        let road = Road::config_new();    
     }
 
     #[test]
     #[should_panic]
     fn test_road_constructor_panics() {
-
         // Should panic due to invalid crossing position.
         let crossings = vec![(Crossing::Zebra {id: 0, cross_time: TimeDelta::from_secs(25) }, 30.0)];
         Road::new(20.0f32, crossings);
     }
 
     #[test]
-    fn test_road_get_length() {
-        let test_road = Road::new(20.0f32, Vec::new());
-        assert_eq!(test_road.get_length(), 20.0f32);
+    fn test_road_get_length_config() {
+        let test_road = Road::config_new();
+        let test_config = get_zebra_config();
+        assert_eq!(test_road.get_length(), test_config.road_length);
     }
 
     #[test]
     fn test_crossing_get_id() {
         let test_pelican = Crossing::pelican(0);
-	assert_eq!(test_pelican.get_id(), 0);
-	let test_zebra = Crossing::zebra(1);
+	    assert_eq!(test_pelican.get_id(), 0);
+	    let test_zebra = Crossing::zebra(1);
         assert_eq!(test_zebra.get_id(), 1);
     }
 
@@ -246,27 +301,29 @@ mod tests {
 
     #[test]
     fn test_road_get_crossings() {
-        let crossings = vec![
-	    (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
-	    (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
-	];
-        let road = Road::new(30.0f32, crossings);
+        let road = Road::config_new();
 
-	let direction = Direction::Up;
-        assert_eq!(
-	    road.get_crossings(&direction),
-	    &[
-		(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 10.0),
-		(Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 13.0),
-	    ]);
+        // IDs count monotonically up when direction is Up, and check position is increasing
+        let crossings = road.get_crossings(&Direction::Up);
+        let mut previous_position = 0.;
+        for (i, &(crossing, position)) in crossings.into_iter().enumerate() {
+            assert_eq!(crossing.get_id(), i as ID);
+            assert!(position > previous_position);
+            previous_position = position;
+        }
 
-	let direction = Direction::Down;
-        assert_eq!(
-	    road.get_crossings(&direction),
-	    &[
-		(Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 17.0),
-		(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 20.0),
-	    ]);
+        // IDs count monotonically down when direction is Down
+        // Check position is increasing
+        let crossings = road.get_crossings(&Direction::Down);
+        let mut previous_position = 0.;
+        let mut i: usize = crossings.len();
+        for &(crossing, position) in crossings.into_iter() {
+            i -= 1;
+            assert_eq!(crossing.get_id(), i as ID);
+            assert!(position > previous_position);
+            previous_position = position;
+        }
+
     }
 
     #[test]

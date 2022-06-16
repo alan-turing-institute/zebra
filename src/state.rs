@@ -6,8 +6,12 @@ use crate::road::{Direction, Crossing};
 use crate::pedestrian::Pedestrian;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
+use std::collections;
+use std::collections::vec_deque::IterMut;
 
 pub trait State {
+
+    fn update(&mut self, delta_t: TimeDelta);
 
     // fn get_vehicles(&self) -> &[dyn Vehicle];
     fn timestamp(&self) -> &Time;
@@ -38,6 +42,21 @@ pub trait State {
     // fn instantaneous_update(&mut self);
 
 }
+
+impl Serialize for dyn State {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Number of fields in the struct and name.
+        let mut state = serializer.serialize_struct("State", 3)?;
+        state.serialize_field("timestamp", &self.timestamp())?;
+        state.serialize_field("pedestrians", &self.get_pedestrians())?;
+        state.serialize_field("vehicles", &self.get_vehicles())?;
+        state.end()
+    }
+}
+
 
 pub struct SimulatorState<'a> {
 
@@ -78,6 +97,11 @@ impl<'a> SimulatorState<'a> {
 }
 
 impl<'a> State for SimulatorState<'a> {
+
+    fn update(&mut self, delta_t: TimeDelta) {
+        self.timestamp += delta_t;
+        self.vehicles.iter_mut().for_each(|veh| veh.roll_forward_by(delta_t));
+    }
 
     fn timestamp(&self) -> &Time {
         &self.timestamp
@@ -125,6 +149,8 @@ impl<'a> State for SimulatorState<'a> {
     fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
         todo!()
     }
+
+
 }
 
 #[cfg(test)]
