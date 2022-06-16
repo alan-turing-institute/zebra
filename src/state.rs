@@ -119,23 +119,30 @@ impl<'a> State for SimulatorState<'a> {
     }
 
     fn get_vehicle(&self, idx: usize) -> &dyn Vehicle {
-        todo!()
+        &*self.get_vehicles()[idx]
     }
 
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle {
+        // The below does not compile: "cannot borrow data in a `&` reference as mutable"
+        // &mut *self.get_vehicles()[idx]
         todo!()
     }
 
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian {
-        todo!()
+        &self.get_pedestrians()[idx]
     }
 
+    // fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_> {
     fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_> {
+        // The below does not compile: "cannot borrow data in a `&` reference as mutable"
+        // &mut self.get_pedestrians()[idx]
         todo!()
     }
 
     fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize {
         todo!()
+        // self.pedestrians.push_back(pedestrian);
+        // self.pedestrians.len() - 1
     }
 
     fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_> {
