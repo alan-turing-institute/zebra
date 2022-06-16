@@ -50,7 +50,7 @@ impl Person for Pedestrian<'_> {
 }
 
 impl Pedestrian<'_> {
-    fn new(id: ID, location: &Crossing, arrival_time: Time) -> Pedestrian {
+    pub fn new(id: ID, location: &Crossing, arrival_time: Time) -> Pedestrian {
         Pedestrian {
 	    id,
             location,
