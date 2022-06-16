@@ -136,7 +136,7 @@ impl Road {
         self.length
     }
 
-    pub fn get_crossings(&self, direction: Direction) -> &[(Crossing, Position)]
+    pub fn get_crossings(&self, direction: &Direction) -> &[(Crossing, Position)]
     {
 	match direction {
 	    Direction::Up => &self.crossings_up,
@@ -227,7 +227,7 @@ mod tests {
 
 	let direction = Direction::Up;
         assert_eq!(
-	    road.get_crossings(direction),
+	    road.get_crossings(&direction),
 	    &[
 		(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 10.0),
 		(Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 13.0),
@@ -235,7 +235,7 @@ mod tests {
 
 	let direction = Direction::Down;
         assert_eq!(
-	    road.get_crossings(direction),
+	    road.get_crossings(&direction),
 	    &[
 		(Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10)}, 17.0),
 		(Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25)}, 20.0),

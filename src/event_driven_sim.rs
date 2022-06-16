@@ -89,11 +89,11 @@ impl EventDrivenSim {
         self.state = state;
     }
 
-    fn set_ped_arrival_times(&mut self, ped_arrival_times: Vec<Time>) {
+    pub fn set_ped_arrival_times(&mut self, ped_arrival_times: Vec<Time>) {
         self.ped_arrival_times = ped_arrival_times;
     }
 
-    fn set_veh_arrival_times(&mut self, veh_arrival_times: Vec<Time>) {
+    pub fn set_veh_arrival_times(&mut self, veh_arrival_times: Vec<Time>) {
         self.veh_arrival_times = veh_arrival_times;
     }
 
@@ -170,6 +170,10 @@ impl Simulation for EventDrivenSim {
 
     }
 
+    fn get_state(&self) -> &Box<dyn State> {
+        &self.state
+    }
+
     fn handle_event(&mut self, event: Event) -> EventResult<'_> {
         use EventType::*;
         match event.1 {
@@ -203,11 +207,11 @@ impl Simulation for EventDrivenSim {
                 EventResult::RemovePedestrian
             }
             LightsToRed(idx) => {
-                let (crossing, _) = &self.road.get_crossings(Direction::Up)[idx];
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
                 EventResult::CrossingChange(crossing)
             }
             LightsToGreen(idx) => {
-                let (crossing, _) = &self.road.get_crossings(Direction::Up)[idx];
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
                 EventResult::CrossingChange(crossing)
             }
             StopSimulation => {
@@ -215,6 +219,10 @@ impl Simulation for EventDrivenSim {
             }
             _ => unreachable!()
         }
+    }
+
+    fn get_road(&self) -> &Road {
+        &self.road
     }
 }
 

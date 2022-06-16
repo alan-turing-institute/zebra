@@ -22,6 +22,8 @@ pub trait Simulation {
     // update simulation state
     fn instantaneous_update(&mut self);
 
+    fn get_state(&self) -> &Box<dyn State> ;
+
     fn handle_event(&mut self, event: Event) -> EventResult<'_>;
     // {
     //     use EventType::*;
@@ -38,6 +40,7 @@ pub trait Simulation {
     //         _ => unreachable!()
     //     }
     // }
+    fn get_road(&self) -> &Road;
 }
 
 // MOVED TO EventDrivenSim
