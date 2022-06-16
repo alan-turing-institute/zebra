@@ -9,7 +9,7 @@ use serde_json::to_string as to_json;
 use std::collections;
 use std::collections::vec_deque::IterMut;
 
-pub trait State {
+pub trait State <'a> {
 
     fn update(&mut self, delta_t: TimeDelta);
 
@@ -25,10 +25,10 @@ pub trait State {
     fn get_vehicle(&self, idx: usize) -> &dyn Vehicle;
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle;
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian;
-    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_>;
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'a>;
 
-    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize;
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_>;
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'a>) -> usize;
+    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'a>;
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize;
     fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
     // MOVED TO THE SIMULATION TRAIT:
@@ -43,7 +43,7 @@ pub trait State {
 
 }
 
-impl Serialize for dyn State {
+impl <'a> Serialize for dyn State <'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -96,7 +96,7 @@ impl<'a> SimulatorState<'a> {
     }
 }
 
-impl<'a> State for SimulatorState<'a> {
+impl<'a> State <'a> for SimulatorState<'a> {
 
     fn update(&mut self, delta_t: TimeDelta) {
         self.timestamp += delta_t;
@@ -112,7 +112,6 @@ impl<'a> State for SimulatorState<'a> {
         &self.vehicles
     }
 
-
     // get the list of pedestrians
     fn get_pedestrians(&self) ->  &VecDeque<Pedestrian> {
         &self.pedestrians
@@ -123,9 +122,7 @@ impl<'a> State for SimulatorState<'a> {
     }
 
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle {
-        // The below does not compile: "cannot borrow data in a `&` reference as mutable"
-        // &mut *self.get_vehicles()[idx]
-        todo!()
+        &mut *self.get_vehicles()[idx]
     }
 
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian {
@@ -133,20 +130,16 @@ impl<'a> State for SimulatorState<'a> {
     }
 
     // fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_> {
-    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_> {
-        // The below does not compile: "cannot borrow data in a `&` reference as mutable"
-        // &mut self.get_pedestrians()[idx]
-        todo!()
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'a> {
+        &mut self.get_pedestrians()[idx]
     }
 
-    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize {
-        todo!()
-        // Below code leaads to "lifetime mismatch"
-        // self.pedestrians.push_back(pedestrian);
-        // self.pedestrians.len() - 1
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'a>) -> usize {
+        self.pedestrians.push_back(pedestrian);
+        self.pedestrians.len() - 1
     }
 
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_> {
+    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'a> {
         todo!()
         // TODO: should this really be "pop" if it is taking a particular idx
         // TODO: if it is taking particular idx this breaks order of vector
