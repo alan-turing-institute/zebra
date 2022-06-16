@@ -362,7 +362,7 @@ impl Simulation for EventDrivenSim {
         let mut t: Time = 0;
         while t < self.end_time {
 
-            let mut next_event = self.next_event();
+            let next_event = self.next_event();
 
             self.roll_forward_by(TimeDelta::new(next_event.0 - t));
 
