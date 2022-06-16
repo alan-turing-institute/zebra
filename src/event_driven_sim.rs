@@ -3,10 +3,8 @@ use rand::rngs::StdRng;
 use crate::events::{Event, EventResult, EventType};
 use crate::pedestrian::Person;
 use rand::distributions::WeightedIndex;
-use crate::events::{Event, EventResult, EventType};
-use crate::pedestrian::Person;
 
-use crate::{ID, Time, pedestrian};
+use crate::{ID, Time, pedestrian, Direction};
 use crate::pedestrian::Pedestrian;
 use crate::time::TimeDelta;
 use crate::simulation::{Simulation, arrival_times};
@@ -130,10 +128,10 @@ impl Simulation for EventDrivenSim {
         let curr_time = *self.state.timestamp();
         let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
-        if let Some(&arrival_time) = self.ped_arrival_times.get(self.ped_counter+1) {
+        if let Some(&arrival_time) = self.ped_arrival_times.get((self.ped_counter) as usize) {
             events.push(Event(arrival_time, EventType::PedestrianArrival));
         }
-        if let Some(&arrival_time) = self.veh_arrival_times.get(self.veh_counter+1) {
+        if let Some(&arrival_time) = self.veh_arrival_times.get((self.veh_counter) as usize) {
             events.push(Event(arrival_time, EventType::VehicleArrival));
         }
 
@@ -173,8 +171,8 @@ impl Simulation for EventDrivenSim {
             VehicleArrival => {
                 EventResult::NewVehicle(self.new_vehicle())
             }
-            VehicleExit(vehicle) => {
-                self.remove_vehicle(i);
+            VehicleExit(idx) => {
+                self.remove_vehicle(idx);
                 EventResult::RemoveVehicle
             }
             SpeedLimitReached(idx) => {
@@ -200,11 +198,11 @@ impl Simulation for EventDrivenSim {
                 EventResult::RemovePedestrian
             }
             LightsToRed(idx) => {
-                let (crossing, _) = &self.road.get_crossings()[idx];
+                let (crossing, _) = &self.road.get_crossings(Direction::Up)[idx];
                 EventResult::CrossingChange(crossing)
             }
             LightsToGreen(idx) => {
-                let (crossing, _) = &self.get_crossings()[idx];
+                let (crossing, _) = &self.road.get_crossings(Direction::Up)[idx];
                 EventResult::CrossingChange(crossing)
             }
             StopSimulation => {
@@ -218,6 +216,7 @@ impl Simulation for EventDrivenSim {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
     use super::*;
 
     fn test_sim() -> EventDrivenSim {
@@ -233,7 +232,7 @@ mod tests {
 
         // Construct a new state with a non-zero timestamp.
         let new_timestamp = 10000;
-        let new_state = SimulatorState::dummy(Vec::new(), Vec::new(), new_timestamp);
+        let new_state = SimulatorState::dummy(VecDeque::new(), VecDeque::new(), new_timestamp);
 
         // Set the simulation state.
         sim.set_state(Box::new(new_state));
@@ -273,8 +272,8 @@ mod tests {
         sim.set_ped_arrival_times(ped_arrival_times);
         sim.set_veh_arrival_times(veh_arrival_times);
 
-        let actual = sim.time_to_next_event();
-        assert_eq!(actual, TimeDelta::new(10000));
+        let actual = sim.next_event();
+        assert_eq!(actual.0, 10000);
     }
 
     #[test]
@@ -289,8 +288,8 @@ mod tests {
         sim.set_ped_arrival_times(ped_arrival_times);
         sim.set_veh_arrival_times(veh_arrival_times);
 
-        let actual = sim.time_to_next_event();
-        assert_eq!(actual, TimeDelta::new(4000));
+        let actual = sim.next_event();
+        assert_eq!(actual.0, 4000);
     }
 
     #[test]
