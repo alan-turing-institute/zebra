@@ -217,6 +217,7 @@ impl Simulation for EventDrivenSim {
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
+    use crate::vehicle::{DECCELERATION_VALUE, MAX_SPEED};
     use super::*;
 
     fn dummy_sim() -> EventDrivenSim {
@@ -301,32 +302,34 @@ mod tests {
     fn test_vehicle_stopping_event() {
 
         let speed = 10.0;
-        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(Car::new(Direction::Up, speed, Action::Decelerate)));
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(Car::new(0u64, Direction::Up, speed, Action::Deccelerate)));
+
 
         let timestamp = 22 * TIME_RESOLUTION;
-        let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
+        let state = SimulatorState::dummy(vehicles, VecDeque::new(), timestamp);
 
         let mut sim = dummy_sim();
         sim.set_state(Box::new(state));
 
-        let actual: TimeDelta = sim.time_to_next_event();
-        assert_eq!(actual, TimeDelta::from((-1.0) * (speed / DECELERATION_VALUE)));
+        let actual= sim.next_event();
+        assert_eq!(actual.0, 0 as Time + TimeDelta::from((-1.0) * (speed / DECCELERATION_VALUE)));
     }
 
     #[test]
     fn test_vehicle_speed_limit_event() {
 
         let speed = 10.0;
-        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(Car::new(Direction::Up, speed, Action::Accelerate)));
+        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(Car::new(0u64, Direction::Up, speed, Action::Accelerate)));
 
         let timestamp = 11 * TIME_RESOLUTION;
-        let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
+        let state = SimulatorState::dummy(vehicles.into(), VecDeque::new(), timestamp);
 
         let mut sim = dummy_sim();
         sim.set_state(Box::new(state));
 
-        let actual: TimeDelta = sim.time_to_next_event();
-        assert_eq!(actual, TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
+        let actual = sim.next_event();
+        assert_eq!(actual.0, 0 as Time + TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
 
     #[test]
@@ -334,11 +337,11 @@ mod tests {
 
         // TODO.
         // Use the "dummy" Car constructor to make two cars with given initial positions.
-        let v1 = Car::new(Direction::Up, 0.0, Action::StaticSpeed);
-        let v2 = Car::new(Direction::Up, MAX_SPEED, Action::StaticSpeed);
+        let v1 = Car::new(0,Direction::Up, 0.0, Action::StaticSpeed);
+        let v2 = Car::new(1, Direction::Up, MAX_SPEED, Action::StaticSpeed);
         let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(v1), Box::new(v2));
         let timestamp = 24 * TIME_RESOLUTION;
-        let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
+        let state = SimulatorState::dummy(vehicles.into(), VecDeque::new(), timestamp);
 
         let mut sim = dummy_no_arrivals_sim();
         sim.set_state(Box::new(state));
