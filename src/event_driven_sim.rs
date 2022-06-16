@@ -116,15 +116,20 @@ impl Simulation for EventDrivenSim {
 mod tests {
     use super::*;
 
-    fn test_sim() -> EventDrivenSim {
+    fn dummy_sim() -> EventDrivenSim {
         let road = Road::new(100.0, Vec::new());
         EventDrivenSim::new(147, 0, 60000, 0.1, 0.2, road)
+    }
+
+    fn dummy_no_arrivals_sim() -> EventDrivenSim {
+        let road = Road::new(100.0, Vec::new());
+        EventDrivenSim::new(147, 0, 60000, 0.0, 0.0, road)
     }
 
     #[test]
     fn test_set_state() {
 
-        let mut sim = test_sim();
+        let mut sim = dummy_sim();
         assert_eq!(sim.state.timestamp(), &0);
 
         // Construct a new state with a non-zero timestamp.
@@ -139,7 +144,7 @@ mod tests {
     #[test]
     fn test_set_arrival_times() {
 
-        let mut sim = test_sim();
+        let mut sim = dummy_sim();
         assert_ne!(sim.ped_arrival_times, vec!(10000, 20000));
 
         // Construct new pedestrian arrival times.
@@ -160,7 +165,7 @@ mod tests {
     #[test]
     fn test_pedestrian_arrival_event() {
 
-        let mut sim = test_sim();
+        let mut sim = dummy_sim();
 
         let ped_arrival_times = vec!(10000, 20000);
         let veh_arrival_times = vec!(12000, 21000);
@@ -176,7 +181,7 @@ mod tests {
     #[test]
     fn test_vehicle_arrival_event() {
 
-        let mut sim = test_sim();
+        let mut sim = dummy_sim();
 
         let ped_arrival_times = vec!(5000, 7000);
         let veh_arrival_times = vec!(4000, 15000);
@@ -198,7 +203,7 @@ mod tests {
         let timestamp = 22 * TIME_RESOLUTION;
         let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
 
-        let mut sim = test_sim();
+        let mut sim = dummy_sim();
         sim.set_state(Box::new(state));
 
         let actual: TimeDelta = sim.time_to_next_event();
@@ -214,13 +219,32 @@ mod tests {
         let timestamp = 11 * TIME_RESOLUTION;
         let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
 
-        let mut sim = test_sim();
+        let mut sim = dummy_sim();
         sim.set_state(Box::new(state));
 
         let actual: TimeDelta = sim.time_to_next_event();
         assert_eq!(actual, TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
 
+    #[test]
+    fn test_vehicle_reaction_event() {
+
+        // TODO.
+        // Use the "dummy" Car constructor to make two cars with given initial positions.
+        let v1 = Car::new(Direction::Up, 0.0, Action::StaticSpeed);
+        let v2 = Car::new(Direction::Up, MAX_SPEED, Action::StaticSpeed);
+        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(v1), Box::new(v2));
+        let timestamp = 24 * TIME_RESOLUTION;
+        let state = SimulatorState::dummy(vehicles, Vec::new(), timestamp);
+
+        let mut sim = dummy_no_arrivals_sim();
+        sim.set_state(Box::new(state));
+
+        // TODO.
+        // Compute the time delta before the trailing car (v2) reaches the Brake region.
+
+
+    }
     //
     // Test the static helper functions.
     //
