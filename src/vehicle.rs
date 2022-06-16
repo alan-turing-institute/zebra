@@ -1,12 +1,14 @@
-use crate::Time;
 use crate::time::{TimeDelta,TIME_RESOLUTION};
 use crate::road::{Road, Direction};
 use crate::state::State;
 use crate::obstacle::Obstacle;
+use crate::{Time, ID};
+use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde_json::to_string as to_json;
 
-const MAX_SPEED: f32 = 13.41;
-const ACCELERATION_VALUE: f32 = 3.0;
-const DECCELERATION_VALUE: f32 = -4.0;
+pub const MAX_SPEED: f32 = 13.41;
+pub const ACCELERATION_VALUE: f32 = 3.0;
+pub const DECCELERATION_VALUE: f32 = -4.0;
 
 #[derive(Copy,Clone)]
 pub enum Action {
@@ -16,7 +18,9 @@ pub enum Action {
 }
 
 
-pub trait Vehicle : Obstacle {
+pub trait Vehicle {
+    fn get_id(&self) -> ID;
+    fn set_id(&mut self, id: ID);
     fn get_length(&self) -> f32;
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
@@ -30,24 +34,44 @@ pub trait Vehicle : Obstacle {
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
+impl Serialize for dyn Vehicle {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Number of fields in the struct and name.
+        let mut state = serializer.serialize_struct("Car", 7)?;
+        state.serialize_field("id", &self.get_id())?;
+        state.serialize_field("length", &self.get_length())?;
+        state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
+        state.serialize_field("direction", &self.get_direction())?;
+        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("speed", &self.get_speed())?;
+        state.serialize_field("acceleration", &self.get_acceleration())?;
+        state.end()
+    }
+}
+
 pub struct Car {
+    id: ID,
     length: f32,
     buffer_zone: f32,
     direction: Direction,
     position: f32,
     speed: f32,
     acceleration: f32,
-
 }
 
 impl Car {
-    pub fn new(direction: Direction, speed: f32, action: Action) -> Car {
-       let mut car = Car { position: 0.0f32,
-              length: 4.0f32,
-              buffer_zone: 1.0f32,
-              direction,
-              speed,
-              acceleration: 0.0f32,
+    pub fn new(id: ID, direction: Direction, speed: f32, action: Action) -> Car {
+	let mut car = Car {
+	    id: id,
+	    position: 0.0f32,
+            length: 4.0f32,
+            buffer_zone: 1.0f32,
+            direction,
+            speed,
+            acceleration: 0.0f32,
         };
 
         car.action(action);
@@ -76,7 +100,12 @@ impl Obstacle for Car{
 }
 
 impl Vehicle for Car {
-
+    fn set_id(&mut self, id: ID) {
+	self.id = id;
+    }
+    fn get_id(&self) -> ID {
+	self.id
+    }
     fn get_length(&self) -> f32 {
        self.length
     }
@@ -149,6 +178,9 @@ impl Vehicle for Car {
 
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
+        // TODO NEXT: Rewrite this using the vehicle ID.
+        panic!();
+
         let my_direction = &self.get_direction();
         if vehicles.len() == 0 {
             return Option::None
@@ -171,10 +203,28 @@ impl Vehicle for Car {
     }
 }
 
+impl Serialize for Car {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Number of fields in the struct and name.
+        let mut state = serializer.serialize_struct("Car", 7)?;
+        state.serialize_field("id", &self.get_id())?;
+        state.serialize_field("length", &self.get_length())?;
+        state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
+        state.serialize_field("direction", &self.get_direction())?;
+        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("speed", &self.get_speed())?;
+        state.serialize_field("acceleration", &self.get_acceleration())?;
+        state.end()
+    }
+}
+
 #[cfg(test)]
 
 fn spawn_car_take_action(init_action:Action, init_speed:f32){
-    let mut test_car = Car::new(Direction::Up, init_speed,init_action);
+    let mut test_car = Car::new(0, Direction::Up, init_speed,init_action);
 
     let mut test_secs = TimeDelta::new(1000);
     test_car.roll_forward_by(test_secs);
@@ -196,6 +246,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_get_car_id(){
+        let test_car = Car::new(1, Direction::Up, 13.0,Action::Accelerate);
+        assert_eq!(test_car.get_id(), 1);
+    }
+
+    #[test]
+    fn test_serialize_car(){
+        let test_car = Car::new(1, Direction::Up, 13.0,Action::Accelerate);
+        let as_json= to_json(&test_car).unwrap();
+        // println!("{}", &as_json);
+        assert_eq!(&as_json, "{\"id\":1,\"length\":4.0,\"buffer_zone\":1.0,\"direction\":\"Up\",\"position\":0.0,\"speed\":13.0,\"acceleration\":3.0}");
+    }
+
+    #[test]
     fn test_car_postion(){
         let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
         assert_eq!(test_car.get_veh_position(), 0.0);
@@ -203,13 +267,13 @@ mod tests {
 
     #[test]
     fn test_car_direction(){
-        let test_car = Car::new(Direction::Up, 13.0,Action::Accelerate);
+        let test_car = Car::new(0, Direction::Up, 13.0,Action::Accelerate);
         matches!(test_car.get_direction(), Direction::Up);
     }
 
     #[test]
     fn test_roll_forward_static(){
-        let mut test_car = Car::new(Direction::Up, 0.0,Action::Accelerate);
+        let mut test_car = Car::new(0, Direction::Up, 0.0,Action::Accelerate);
         test_car.action(Action::StaticSpeed);
         test_car.roll_forward_by(TimeDelta::new(5000));
         assert_eq!(test_car.get_speed(), 0.0);
@@ -261,5 +325,3 @@ mod tests {
     // Don't deccelerate when speed is 0
     // Don't accelerate if at the speed limit
     // Stop deceleration when speed is 0
-
-
