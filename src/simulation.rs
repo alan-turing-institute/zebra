@@ -2,6 +2,7 @@
 use rand_distr::{Exp, Distribution};
 use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
+use crate::events::{Event, EventResult, EventType};
 
 use crate::Time;
 use crate::road::Road;
@@ -12,9 +13,8 @@ use crate::vehicle::{Vehicle, Car};
 
 
 pub trait Simulation {
-
     // get time interval until next event
-    fn time_to_next_event(&self) -> TimeDelta;
+    fn next_event(&mut self) -> Event;
 
     // roll simulation forward by time interval
     fn roll_forward_by(&mut self, time_delta: TimeDelta);
@@ -24,6 +24,22 @@ pub trait Simulation {
 
     fn get_state(&self) -> &Box<dyn State> ;
 
+    fn handle_event(&mut self, event: Event) -> EventResult<'_>;
+    // {
+    //     use EventType::*;
+    //     match event.1 {
+    //         VehicleArrival => {}
+    //         VehicleExit(vehicle) => {}
+    //         SpeedLimitReached(_) => {}
+    //         ZeroSpeedReached(_) => {}
+    //         ReactionToObstacle(_) => {}
+    //         PedestrianArrival => {}
+    //         PedestrianExit(_) => {}
+    //         LightsToRed(_) => {}
+    //         LightsToGreen(_) => {}
+    //         _ => unreachable!()
+    //     }
+    // }
 }
 
 // MOVED TO EventDrivenSim
@@ -121,6 +137,10 @@ pub trait Simulation {
 //     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
 //     }
+    // }
+
+
+// }
 
 //     // update state
 //     fn instantaneous_update(&mut self) {
@@ -134,10 +154,9 @@ pub fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng:
     let mut t = start_time.clone();
     loop {
         t = t + interarrival_time(arrival_rate, rng);
-        if &t > end_time { break; }
+        if &t > end_time { break ret }
         ret.push(t);
     }
-    ret
 }
 
 pub fn interarrival_time(arrival_rate: f32, rng: &mut StdRng) -> Time {
