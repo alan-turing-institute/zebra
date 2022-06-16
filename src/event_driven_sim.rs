@@ -404,11 +404,5 @@ mod tests {
     
     }
 
-    #[test]
-    fn test_integration_three_zebras() {
-    
-    
-    }
-
 }
 
