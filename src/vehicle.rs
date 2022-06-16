@@ -58,7 +58,11 @@ impl Car {
 
 impl Obstacle for Car{
 
-    fn get_position(&self, road: &Road) -> f32 {
+    fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
+
+        // Check that the direction matches my direction.
+        let my_direction = &self.get_direction();
+        assert!(matches!(direction, my_direction));
         self.position
     }
 
@@ -113,7 +117,7 @@ impl Vehicle for Car {
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road)-> f32 {
 
         // Negative relative_position means obstacle in front of car
-        let relative_position: f32 = &self.get_veh_position() - obstacle.get_position(road);
+        let relative_position: f32 = &self.get_veh_position() - obstacle.get_position(road, &self.get_direction());
 
         // We should never need to have a positive relative position (looking behind)
         assert!(relative_position <= 0.0);

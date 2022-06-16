@@ -70,8 +70,14 @@ impl Crossing {
 
 impl Obstacle for Crossing {
 
-    fn get_position(&self, road: &Road) -> f32 {
-        0.0 // TRICKY
+    fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
+
+
+        // Get the ID of this crossing.
+        // let id = &self.get_id();
+
+        // TODO.
+        0.0
     }
 
     fn get_speed(&self) -> f32 {
