@@ -32,6 +32,24 @@ pub trait Vehicle {
     fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
+impl Serialize for dyn Vehicle {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Number of fields in the struct and name.
+        let mut state = serializer.serialize_struct("Car", 7)?;
+        state.serialize_field("id", &self.get_id())?;
+        state.serialize_field("length", &self.get_length())?;
+        state.serialize_field("buffer_zone", &self.get_buffer_zone())?;
+        state.serialize_field("direction", &self.get_direction())?;
+        state.serialize_field("position", &self.get_position())?;
+        state.serialize_field("speed", &self.get_speed())?;
+        state.serialize_field("acceleration", &self.get_acceleration())?;
+        state.end()
+    }
+}
+
 pub struct Car {
     id: ID,
     length: f32,
