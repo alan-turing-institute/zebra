@@ -22,11 +22,14 @@ pub trait Simulation {
     // update simulation state
     fn instantaneous_update(&mut self);
 
-    fn get_state(&self) -> &Box<dyn State> ;
+    fn get_state(&self) -> &Box<dyn State<'static>> ;
 
-    fn handle_event(&mut self, event: Event) -> EventResult<'_>;
+    fn handle_event(&'static mut self, event: Event) -> EventResult<'static>;
 
     fn get_road(&self) -> &Road;
+
+    fn run(&mut self) -> ();
+
 }
 
 pub fn arrival_times(start_time: &Time, end_time: &Time, arrival_rate: f32, rng: &mut StdRng) -> Vec<Time> {
