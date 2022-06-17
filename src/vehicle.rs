@@ -1,5 +1,6 @@
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
+use std::collections::VecDeque;
 
 use crate::{Time, ID};
 use crate::time::TimeDelta;
@@ -10,7 +11,7 @@ use crate::road::Direction;
 use crate::state::State;
 use crate::event_driven_sim::EventDrivenSim;
 use crate::simulation::Simulation;
-use crate::obstacle::Obstacle;
+use crate::obstacle::{Obstacle, AsObstacle};
 
 pub const MAX_SPEED: f32 = 13.41;
 pub const ACCELERATION_VALUE: f32 = 3.0;
@@ -38,7 +39,7 @@ pub trait Vehicle : Obstacle {
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
     fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
     fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32;
-    fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
+    fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
 impl Serialize for dyn Vehicle {
@@ -103,6 +104,12 @@ impl Obstacle for Car{
 
     fn get_acceleration(&self) -> f32 {
         self.acceleration
+    }
+}
+
+impl<T: Obstacle> AsObstacle for T {
+    fn as_osbstacle(&self) -> &dyn Obstacle {
+        self
     }
 }
 
@@ -205,10 +212,7 @@ impl Vehicle for Car {
         Option::None
     }
 
-    fn next_vehicle<'a>(&self, vehicles: &'a Vec<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
-
-        // TODO NEXT: Rewrite this using the vehicle ID.
-        panic!();
+    fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
         let my_direction = &self.get_direction();
         if vehicles.len() == 0 {
@@ -219,10 +223,8 @@ impl Vehicle for Car {
             if matches!(vehicle.get_direction(), my_direction) {
                 continue;
             }
-            // TODO. TEST &/or FIX THIS!
-            // WARNING!!
+
             // This assumes vehicles are ordered by increasing position.
-            // But they might not be!
             if &vehicle.get_veh_position() < &self.get_veh_position() {
                 continue;
             }

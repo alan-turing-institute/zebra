@@ -9,9 +9,10 @@ use crate::{ID, Time, pedestrian};
 use crate::pedestrian::Pedestrian;
 use crate::time::{TimeDelta, TIME_RESOLUTION};
 use crate::simulation::{Simulation, arrival_times};
-use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE, MAX_SPEED};
+use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE, DECCELERATION_VALUE, MAX_SPEED};
 use crate::road::{Road, Direction};
 use crate::state::{State, SimulatorState};
+use crate::obstacle::Obstacle;
 
 pub struct EventDrivenSim {
 
@@ -144,30 +145,60 @@ impl EventDrivenSim {
         self.state.pop_pedestrian(idx);
     }
 
+    fn time_to_obstacle_event<T:Obstacle + ?Sized>(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> Option<f32> {
+
+        let rel_accel = vehicle.relative_acceleration(obstacle);
+        let rel_speed = vehicle.relative_speed(obstacle);
+        let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+        let buffer_zone: f32 = vehicle.get_buffer_zone();
+
+        if rel_accel < 0.0 {
+            // Obstacle is accelerating away from the vehicle.
+            None
+
+        } else if rel_accel == 0.0 {
+
+            // Obstacle is receding and we're not relatively accelerating.
+            if rel_speed <= 0.0 {
+                None
+            } else{
+                // We are at max speed, what time will we be in the braking zone
+                Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
+            }
+
+
+        } else if rel_accel > 0.0 {
+            // We are accelerating, what time will we be in the braking zone
+            Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
+
+        } else {unreachable!()}
+
+    }
 }
 
 impl Simulation for EventDrivenSim {
     // get time interval until next event
     fn next_event(&mut self) -> Event {
 
-        // get min of pedestrian and vehicle arrival times
-        // let min_ped_times = self.ped_arrival_times.iter().min().unwrap();
-        // let min_veh_times = self.veh_arrival_times.iter().min().unwrap();
-
+        // Simulation finished event.
         let curr_time = *self.state.timestamp();
         let mut events= vec![Event(self.end_time, EventType::StopSimulation)];
 
+        // Pedestrian arrival events.
         if let Some(&arrival_time) = self.ped_arrival_times.get((self.ped_counter) as usize) {
             if arrival_time > curr_time {
                 events.push(Event(arrival_time, EventType::PedestrianArrival));
             }
         }
+
+        // Vehicle arrival events
         if let Some(&arrival_time) = self.veh_arrival_times.get((self.veh_counter) as usize) {
             if arrival_time > curr_time {
                 events.push(Event(arrival_time, EventType::VehicleArrival));
             }
         }
 
+        // Vehicle reaching speed limit or zero speed events.
         let curr_vehicles = self.state.get_vehicles();
         for (i, vehicle) in curr_vehicles.iter().enumerate() {
             let accel = vehicle.get_acceleration();
@@ -180,10 +211,26 @@ impl Simulation for EventDrivenSim {
                 events.push(Event(curr_time + t_delta, EventType::ZeroSpeedReached(i)));
             }
 
-            // Logic to check for obstacle events
+            // Logic to check for obstacle-related events.
 
+            // Crossing obstacles:
+            if let Some((ref crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
+                if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, *crossing_obstacle) {
+                    let t_delta = TimeDelta::from(t_delta_crossing);
+                    events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+                }
+            }
+
+            // Vehicle obstacles:
+            if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
+                // Upcast vehicle_obstacle to the Base trait Obstacle.
+                let obstacle: &dyn Obstacle = vehicle_obstacle.as_osbstacle();
+                if let Some(t_delta_vehicle) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle){
+                    let t_delta = TimeDelta::from(t_delta_vehicle);
+                    events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+                }
+            }
         }
-
 
         // This is infallible since the vector always contains the termination time
         events.into_iter().min().unwrap()
