@@ -127,7 +127,7 @@ impl EventDrivenSim {
         let idx = self.state.push_vehicle(Box::new(vehicle));
         self.state.get_vehicle(idx)
     }
-    fn new_pedestrian(&'static mut self) -> &dyn Person {
+    fn new_pedestrian(&mut self) -> &dyn Person {
         let n_crossings = self.road.get_crossings(&Direction::Up).len();
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
         let (ref crossing, _) = self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
@@ -246,7 +246,7 @@ impl Simulation for EventDrivenSim {
 
     // Update the state instantaneously based on the type of event.
     fn instantaneous_update(&mut self, event_type: EventType) {
-
+        self.handle_event(event_type)
     }
 
     fn get_state(&self) -> &Box<dyn State<'static>> {
@@ -254,7 +254,7 @@ impl Simulation for EventDrivenSim {
     }
 
     // fn handle_event(&'static mut self, event: Event) -> EventResult<'static> {
-    fn handle_event(&'static mut self, event: EventType) {
+    fn handle_event(&mut self, event: EventType) {
         use EventType::*;
         match event {
             VehicleArrival => {

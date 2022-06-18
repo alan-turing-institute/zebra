@@ -26,7 +26,7 @@ pub trait Simulation {
     fn get_state(&self) -> &Box<dyn State<'static>> ;
 
     // fn handle_event(&'static mut self, event: Event) -> EventResult<'static>;
-    fn handle_event(&'static mut self, event: EventType);
+    fn handle_event(&mut self, event: EventType);
 
     fn get_road(&self) -> &Road;
 
