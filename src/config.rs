@@ -154,8 +154,6 @@ mod tests {
         crossing_time = 8000
         pelican_wait_time = 5000
         pelican_go_time = 5000
-        zebra_crossings = [80]
-        pelican_crossings = [300]
         max_speed = 13.41
 
         [simulation]

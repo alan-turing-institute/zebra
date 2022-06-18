@@ -34,19 +34,20 @@ pub struct EventDrivenSim {
     // dist: WeightedIndex<T>,
 
     road: Road,
-    pub state: Box<dyn State>
+    pub state: Box<dyn State <'static>>
+    // pub state: Box<(dyn State<'sim> + 'static)>
 }
 
 impl EventDrivenSim {
 
     pub fn new(
-	seed: u64,
+	    seed: u64,
         start_time: Time,
         end_time: Time,
         ped_arrival_rate: f32,
         veh_arrival_rate: f32,
 	    // crossing_weights: Vec<f64>,
-        road: Road) -> EventDrivenSim {
+        road: Road) -> Self {
 
         assert!(end_time > start_time);
         assert!(ped_arrival_rate >= 0.0);
@@ -68,9 +69,10 @@ impl EventDrivenSim {
         // vec: 0..veh_arrival_times.len()
 
         // Construct initial (empty) state at time 0.
+        // let state = Box::new(SimulatorState::new());
         let state = Box::new(SimulatorState::new());
 
-        let sim = EventDrivenSim {
+        Self {
             seed,
             rng,
             start_time,
@@ -84,13 +86,11 @@ impl EventDrivenSim {
             // dist,
             road,
             state
-        };
-
-        sim
+        }
     }
 
     // Set the state arbitrarily. Useful for testing, but private.
-    fn set_state(&mut self, state: Box<dyn State>) {
+    fn set_state<'b>(&'b mut self, state: Box<dyn State<'static>>) {
         self.state = state;
     }
 
@@ -127,8 +127,7 @@ impl EventDrivenSim {
         let idx = self.state.push_vehicle(Box::new(vehicle));
         self.state.get_vehicle(idx)
     }
-
-    fn new_pedestrian(&mut self) -> &dyn Person {
+    fn new_pedestrian(&'static mut self) -> &dyn Person {
         let n_crossings = self.road.get_crossings(&Direction::Up).len();
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
         let (ref crossing, _) = self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
@@ -248,8 +247,16 @@ impl Simulation for EventDrivenSim {
     // Update the state instantaneously based on the type of event.
     fn instantaneous_update(&mut self, event_type: EventType) {
 
+    }
+
+    fn get_state(&self) -> &Box<dyn State<'static>> {
+        &self.state
+    }
+
+    // fn handle_event(&'static mut self, event: Event) -> EventResult<'static> {
+    fn handle_event(&'static mut self, event: EventType) {
         use EventType::*;
-        match event_type {
+        match event {
             VehicleArrival => {
                 self.new_vehicle();
                 // EventResult::NewVehicle(self.new_vehicle())
@@ -299,9 +306,9 @@ impl Simulation for EventDrivenSim {
         }
     }
 
-    fn get_state(&self) -> &Box<dyn State> {
-        &self.state
-    }
+    // fn get_state(&self) -> &Box<dyn State> {
+    //     &self.state
+    // }
 
     // Moved to instantaneous_update (EventResult appears to be superfluous):
     // fn handle_event(&mut self, event: Event) -> EventResult<'_> {
@@ -495,8 +502,25 @@ mod tests {
         let actual = sim.next_event();
         assert_eq!(actual.0, timestamp + TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
+    
+    #[test]
+    fn test_integration_two_zebras() {
+
+        let crossings = vec![
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(10) }, 170.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 290.0),
+	    ];
+
+        let road = Road::new(300.0f32, crossings);
+
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.2, road);
+
+        sim.run();       
+    
+    
+    }
 }
-    // TODO: uncomment new tests below based on config when ready
+// TODO: uncomment new tests below based on config when ready
 //     #[test]
 //     fn test_vehicle_reaction_event() {
 
@@ -540,6 +564,18 @@ mod tests {
 
 //     #[test]
 //     fn test_set_state() {
+
+    // }
+    //
+    // Test the static helper functions.
+    //
+
+    
+
+// ------
+// let as_json= to_json(self.get_state()).unwrap();
+// println!("{}", &as_json);
+// -----
 
 //         let mut sim = dummy_sim();
 //         assert_eq!(sim.state.timestamp(), &0);

@@ -23,9 +23,10 @@ pub trait Simulation {
     // update simulation state
     fn instantaneous_update(&mut self, event_type: EventType);
 
-    fn get_state(&self) -> &Box<dyn State> ;
+    fn get_state(&self) -> &Box<dyn State<'static>> ;
 
-    // fn handle_event(&mut self, event: Event) -> EventResult<'_>;
+    // fn handle_event(&'static mut self, event: Event) -> EventResult<'static>;
+    fn handle_event(&'static mut self, event: EventType);
 
     fn get_road(&self) -> &Road;
 
