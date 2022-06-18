@@ -90,7 +90,7 @@ impl EventDrivenSim {
     }
 
     // Set the state arbitrarily. Useful for testing, but private.
-    fn set_state<'b>(&'b mut self, state: Box<dyn State<'static>>) {
+    fn set_state<'a>(&'a mut self, state: Box<dyn State<'static>>) {
         self.state = state;
     }
 
