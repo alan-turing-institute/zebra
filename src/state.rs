@@ -113,18 +113,15 @@ impl<'a> State <'a> for SimulatorState<'a> {
     }
 
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle {
-        // &mut *self.get_vehicles()[idx]
-        todo!()
+        &mut *self.vehicles[idx]
     }
 
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian {
         &self.get_pedestrians()[idx]
     }
 
-    // fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_> {
     fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'a> {
-        // &mut self.get_pedestrians()[idx]
-        todo!()
+        &mut self.pedestrians[idx]
     }
 
     fn push_pedestrian(&mut self, pedestrian: Pedestrian<'a>) -> usize {
