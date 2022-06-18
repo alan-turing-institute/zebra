@@ -4,7 +4,7 @@ use crate::vehicle::{Vehicle};
 
 use std::cmp::{Ord, Eq, Ordering};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum EventType {
 
@@ -35,7 +35,7 @@ pub enum EventResult<'a> {
     NoEffect
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Event(pub Time, pub EventType);
 
 impl PartialEq for Event {
