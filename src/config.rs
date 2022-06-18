@@ -142,7 +142,38 @@ mod tests {
         assert_eq!(config.pedestrian_arrival_rate, 5.0);
         assert_eq!(config.vehicle_arrival_rate, 5.0);
     }
+    #[test]
+    fn test_deserialize_zebra_config_all_keys() {
+        let config_string = br#"
+        road_length = 400
+        zebra_crossings = [80]
+        # zebra_crossings = [80, 200]
+        pelican_crossings = [340]
+        max_acceleration = 4.0
+        max_deceleration = 3.0
+        crossing_time = 8000
+        pelican_wait_time = 5000
+        pelican_go_time = 5000
+        zebra_crossings = [80]
+        pelican_crossings = [300]
+        max_speed = 13.41
 
+        [simulation]
+        run_time = 600_000
+        num_pedestrians = 500
+        num_vehicles = 500
+        pedestrian_arrival_rate = 5
+        vehicle_arrival_rate = 5
+        "#;
+        let config: ZebraConfig = toml::from_slice(config_string).unwrap();
+
+        assert_eq!(config.max_acceleration, 4.);
+        assert_eq!(config.max_deceleration, 3.);
+        assert_eq!(config.crossing_time, TimeDelta::from_secs(8));
+        assert_eq!(config.pelican_wait_time, TimeDelta::from_secs(5));
+        assert_eq!(config.pelican_go_time, TimeDelta::from_secs(5));
+        assert_eq!(config.pelican_crossings.len(), 1);
+    }
 
 
 }

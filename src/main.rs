@@ -12,13 +12,18 @@ fn main() {
 
     let config = get_zebra_config();
 
-    
+    // print!("{}\n", config.road_length);
+    let road = Road::config_new();
+    let cross = road.get_crossings(&Direction::Up);
+    // print!("{}\n", cross.len());
 
     let mut simulation = EventDrivenSim::new(
         0, 0, 60_000,
         1., 1.,
         Road::config_new()
     );
+
+    simulation.run();
 
     let as_json= to_json(&simulation.state).unwrap();
     println!("{}", &as_json);
