@@ -1,7 +1,7 @@
 
 mod time;
 mod road;
-mod state;
+pub mod state;
 mod pedestrian;
 mod vehicle;
 mod obstacle;

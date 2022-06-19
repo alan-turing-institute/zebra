@@ -127,7 +127,8 @@ impl <'a> EventDrivenSim <'a> {
         let idx = self.state.push_vehicle(Box::new(vehicle));
         self.state.get_vehicle(idx)
     }
-    fn new_pedestrian(&'a mut self) -> &dyn Person {
+    // fn new_pedestrian(&'a mut self) -> &dyn Person {
+    fn new_pedestrian<'b>(&'b mut self) -> &dyn Person {
         let n_crossings = self.road.get_crossings(&Direction::Up).len();
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
         let (ref crossing, _) = self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
@@ -135,9 +136,14 @@ impl <'a> EventDrivenSim <'a> {
         let id = self.ped_counter;
         self.ped_counter += 1;
 
-        let pedestrian = Pedestrian::new(id, crossing, *self.state.timestamp());
-        let idx =self.state.push_pedestrian(pedestrian);
-        self.state.get_pedestrian(idx)
+        // TODO: this bit of code making a new pedestrian causes issues because
+        // pedestrian has a lifetime that needs to outlive the function
+        // let pedestrian = Pedestrian::new(id, crossing, *self.state.timestamp());
+        // let idx =self.state.push_pedestrian(pedestrian);
+        // self.state.get_pedestrian(idx)
+        //
+        // Current fake implementation to compile
+        self.state.get_pedestrian(0)
     }
 
     fn remove_vehicle(&mut self, idx: usize) {

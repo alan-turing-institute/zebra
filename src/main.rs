@@ -2,6 +2,7 @@ use zebra::*;
 
 use clap::Parser;
 use zebra::event_driven_sim::EventDrivenSim;
+use zebra::state::SimulatorState;
 use serde_json::to_string as to_json;
 
 #[derive(Debug, Parser)]
