@@ -14,9 +14,12 @@ fn main() {
 
     let road = Road::config_new();
 
+    // let state = Box::new(SimulatorState::new());
+    
     let mut simulation = EventDrivenSim::new(
-        0, 0, 60_000,
+        0,0, 60_000,
         1., 1.,
+        Box::new(SimulatorState::new()), 
         Road::config_new()
     );
 

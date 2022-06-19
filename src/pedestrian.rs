@@ -31,7 +31,7 @@ pub struct Pedestrian<'a> {
     arrival_time: Time,
 }
 
-impl Person for Pedestrian<'_> {
+impl <'a> Person for Pedestrian<'a> {
     fn location(&self) -> &Crossing {
         self.location
     }
@@ -49,17 +49,17 @@ impl Person for Pedestrian<'_> {
     }
 }
 
-impl Pedestrian<'_> {
+impl <'a> Pedestrian<'a> {
     pub fn new(id: ID, location: &Crossing, arrival_time: Time) -> Pedestrian {
         Pedestrian {
-	    id,
+            id,
             location,
             arrival_time,
         }
     }
 }
 
-impl Serialize for Pedestrian <'_> {
+impl <'a> Serialize for Pedestrian <'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
