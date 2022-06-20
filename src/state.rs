@@ -185,8 +185,8 @@ mod tests {
         let test_pelican = Rc::new(Crossing::pelican(0));
 
         // Make test pedestrians
-        let ped1 = Pedestrian::new(1, test_pelican.to_owned(), 0);
-        let ped2 = Pedestrian::new(2, test_pelican, 20);
+        let ped1 = Pedestrian::new(1, &test_pelican, 0);
+        let ped2 = Pedestrian::new(2, &test_pelican, 20);
 
         // Make ped_vec and veh_vec
         let ped_vec: Vec<Pedestrian> = vec![ped1, ped2];

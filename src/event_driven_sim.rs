@@ -142,7 +142,7 @@ impl  EventDrivenSim  {
 
         // TODO: this bit of code making a new pedestrian causes issues because
         // pedestrian has a lifetime that needs to outlive the function
-        let pedestrian = Pedestrian::new(id, Rc::new(*crossing), *self.state.timestamp());
+        let pedestrian = Pedestrian::new(id, &crossing, *self.state.timestamp());
         let idx =self.state.push_pedestrian(pedestrian);
         self.state.get_pedestrian(idx)
         //
@@ -531,7 +531,7 @@ mod tests {
         let state = Box::new(SimulatorState::new());
         let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.2, state, road);
 
-        sim.run();       
+        sim.run();
     
     
     }
