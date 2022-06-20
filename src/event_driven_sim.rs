@@ -138,12 +138,12 @@ impl <'a> EventDrivenSim <'a> {
 
         // TODO: this bit of code making a new pedestrian causes issues because
         // pedestrian has a lifetime that needs to outlive the function
-        // let pedestrian = Pedestrian::new(id, crossing, *self.state.timestamp());
-        // let idx =self.state.push_pedestrian(pedestrian);
-        // self.state.get_pedestrian(idx)
+        let pedestrian = Pedestrian::new(id, crossing, *self.state.timestamp());
+        let idx =self.state.push_pedestrian(pedestrian);
+        self.state.get_pedestrian(idx)
         //
         // TODO: Current fake implementation to compile
-        self.state.get_pedestrian(0)
+        // self.state.get_pedestrian(0)
     }
 
     fn remove_vehicle(&mut self, idx: usize) {
@@ -289,7 +289,7 @@ impl <'a> Simulation <'a> for EventDrivenSim <'a> {
             PedestrianArrival => {
                 // EventResult::NewPedestrian(self.new_pedestrian())
                 // TODO: commented out to test run without this call
-                // self.new_pedestrian();
+                self.new_pedestrian();
             }
             PedestrianExit(idx) => {
                 self.remove_pedestrian(idx);
