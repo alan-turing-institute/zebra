@@ -30,9 +30,11 @@ pub trait State  {
     fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian;
 
     fn push_pedestrian(&mut self, pedestrian: Pedestrian) -> usize;
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian;
+    fn pop_pedestrian(&mut self, idx: usize);
+    // fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian;
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize;
-    fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
+    fn pop_vehicle(&mut self, idx: usize);
+    // fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
 }
 
 impl  Serialize for dyn State  {
@@ -130,12 +132,12 @@ impl State  for SimulatorState {
         self.pedestrians.len() - 1
     }
 
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian {
-        todo!()
+    // fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian {
+    fn pop_pedestrian(&mut self, idx: usize) {
         // TODO: should this really be "pop" if it is taking a particular idx
         // TODO: if it is taking particular idx this breaks order of vector
         //       or will be very slow. What is intended?
-        // self.pedestrians[idx].pop_front().unwrap()
+        self.pedestrians.remove(idx);
     }
 
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize {
@@ -143,12 +145,13 @@ impl State  for SimulatorState {
         self.vehicles.len() - 1
     }
 
-    fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
-        todo!()
+    // fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
+    fn pop_vehicle(&mut self, idx: usize) {
+        // todo!()
         // TODO: should this really be "pop" if it is taking a particular idx
         // TODO: if it is taking particular idx this breaks order of vector
         //       or will be very slow. What is intended?
-        // self.vehicles.pop_front().unwrap()
+        self.vehicles.remove(idx);
     }
 
 
