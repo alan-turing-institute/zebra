@@ -145,14 +145,22 @@ impl Vehicle for Car {
 
     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
-        let seconds: f32 = time_delta.into();
+        let mut seconds: f32 = time_delta.into();
+
+        // If acceleration is negative, check if the time to stop is less than
+        // the time to roll_forward_by. If so, set seconds as this time instead.
+        if self.acceleration < 0. {
+            let time_to_zero = -self.speed/self.acceleration;
+            if time_to_zero < seconds {
+                seconds = time_to_zero;
+            }
+        }
 
         // Update the vehicle's position.
         self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
 
         // Update the vehicle's speed.
         self.speed = self.speed + self.acceleration * seconds;
-        self.speed = self.speed.max(0.);
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
