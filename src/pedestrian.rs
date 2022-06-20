@@ -18,22 +18,25 @@ use serde_json::to_string as to_json;
 // TODO: Sequence of pedestrians with arrival times need to be incorporated
 // into state struct. E.g. `generate_pedestrian()` to be implemented.
 
+use std::cell::RefCell;
+
 pub trait Person {
     fn set_id(&mut self, id: ID);
     fn get_id(&self) -> ID;
-    fn location(&self) -> &Crossing;
+    fn location(&self) -> RefCell<Crossing>;
     fn arrival_time(&self) -> Time;
 }
 
-pub struct Pedestrian<'a> {
+#[derive(Clone)]
+pub struct Pedestrian {
     id: ID,
-    location: &'a Crossing,
+    location: RefCell<Crossing>,
     arrival_time: Time,
 }
 
-impl <'a> Person for Pedestrian<'a> {
-    fn location(&self) -> &Crossing {
-        self.location
+impl Person for Pedestrian {
+    fn location(&self) -> RefCell<Crossing> {
+        self.location.to_owned()
     }
 
     fn arrival_time(&self) -> Time {
@@ -49,8 +52,8 @@ impl <'a> Person for Pedestrian<'a> {
     }
 }
 
-impl <'a> Pedestrian<'a> {
-    pub fn new(id: ID, location: &Crossing, arrival_time: Time) -> Pedestrian {
+impl Pedestrian {
+    pub fn new(id: ID, location: RefCell<Crossing>, arrival_time: Time) -> Pedestrian {
         Pedestrian {
             id,
             location,
@@ -59,7 +62,7 @@ impl <'a> Pedestrian<'a> {
     }
 }
 
-impl <'a> Serialize for Pedestrian <'a> {
+impl Serialize for Pedestrian {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -67,7 +70,7 @@ impl <'a> Serialize for Pedestrian <'a> {
         // Number of fields in the struct and name.
         let mut state = serializer.serialize_struct("Pedestrian", 3)?;
         state.serialize_field("id", &self.id)?;
-        state.serialize_field("location", &self.location.get_id())?;
+        state.serialize_field("location", &self.location.borrow().get_id())?;
         state.serialize_field("arrival_time", &self.arrival_time)?;
         state.end()
     }
@@ -80,32 +83,32 @@ mod tests {
 
     #[test]
     fn test_serialize_pedestrian() {
-        let test_pelican = Crossing::pelican(0);
-        let test_pedestrian = Pedestrian::new(1, &test_pelican, 0);
+        let test_pelican = RefCell::new(Crossing::pelican(0));
+        let test_pedestrian = Pedestrian::new(1, test_pelican, 0);
         let as_json= to_json(&test_pedestrian).unwrap();
         assert_eq!(&as_json, "{\"id\":1,\"location\":0,\"arrival_time\":0}");
     }
 
     #[test]
     fn test_get_pedestrian_id() {
-        let test_pelican = Crossing::pelican(0);
-        let test_pedestrian = Pedestrian::new(1, &test_pelican, 0);
+        let test_pelican = RefCell::new(Crossing::pelican(0));
+        let test_pedestrian = Pedestrian::new(1, test_pelican, 0);
         assert_eq!(test_pedestrian.get_id(), 1);
     }
 
     #[test]
     fn test_pedestrian_location() {
-        let test_pelican = Crossing::pelican(0);
-        let test_pedestrian = Pedestrian::new(0, &test_pelican, 0);
-        assert_eq!(test_pedestrian.location(), &test_pelican);
+        let test_pelican = RefCell::new(Crossing::pelican(0));
+        let test_pedestrian = Pedestrian::new(0, test_pelican.to_owned(), 0);
+        assert_eq!(test_pedestrian.location(), test_pelican);
     }
 
     #[test]
     fn test_pedestrian_arrival() {
-        let test_zebra = Crossing::zebra(0);
+        let test_zebra = RefCell::new(Crossing::zebra(0));
         let arrival_time = 0;
-        let test_pedestrian = Pedestrian::new(0, &test_zebra, arrival_time);
-        let exit_time = test_zebra.stop_time() + test_pedestrian.arrival_time;
+        let test_pedestrian = Pedestrian::new(0, test_zebra.to_owned(), arrival_time);
+        let exit_time = test_zebra.into_inner().stop_time() + test_pedestrian.arrival_time;
 
         // Expect the exit time to be the arrival time plus the time taken to cross.
         assert_eq!(exit_time, CROSSING_TIME + arrival_time);

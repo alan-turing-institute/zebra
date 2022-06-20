@@ -150,6 +150,8 @@ impl Road {
         // Assign length from config
         let length = config.road_length;
 
+        println!("{:?}", length);
+
         // Load in crossings
         let mut crossings: Vec<(Crossing, Position)> = Vec::new();
         for &crossing in &config.zebra_crossings {
@@ -269,6 +271,7 @@ mod tests {
     fn test_road_get_length_config() {
         let test_road = Road::config_new();
         let test_config = get_zebra_config();
+        // println!("{:?}", test_road.get_length());
         assert_eq!(test_road.get_length(), test_config.road_length);
     }
 
@@ -289,11 +292,11 @@ mod tests {
         ];
         let road = Road::new(30.0f32, crossings);
 
-        let (crossing, position) = &road.get_crossings(&Direction::Up)[0];
+        let (crossing, _) = &road.get_crossings(&Direction::Up)[0];
         assert_eq!(crossing.get_position(&road, &Direction::Up), 10.0);
         assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 10.0);
 
-        let (crossing, position) = &road.get_crossings(&Direction::Up)[1];
+        let (crossing, _) = &road.get_crossings(&Direction::Up)[1];
         assert_eq!(crossing.get_position(&road, &Direction::Up), 13.0);
         assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 13.0);
     }

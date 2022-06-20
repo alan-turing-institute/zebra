@@ -8,8 +8,9 @@ use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 use std::collections;
 use std::collections::vec_deque::IterMut;
+use std::cell::RefCell;
 
-pub trait State <'a> {
+pub trait State  {
 
     // Update the state to reflect passage of time.
     fn update(&mut self, delta_t: TimeDelta);
@@ -26,15 +27,15 @@ pub trait State <'a> {
     fn get_vehicle(&self, idx: usize) -> &dyn Vehicle;
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle;
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian;
-    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'a>;
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian;
 
-    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'a>) -> usize;
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'a>;
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian) -> usize;
+    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian;
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize;
     fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
 }
 
-impl <'a> Serialize for dyn State <'a> {
+impl  Serialize for dyn State  {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -49,14 +50,14 @@ impl <'a> Serialize for dyn State <'a> {
 }
 
 
-pub struct SimulatorState<'a> {
+pub struct SimulatorState {
 
     vehicles: VecDeque<Box<dyn Vehicle>>,
-    pedestrians: VecDeque<Pedestrian<'a>>,
+    pedestrians: VecDeque<Pedestrian>,
     timestamp: Time
 }
 
-impl Serialize for SimulatorState <'_> {
+impl Serialize for SimulatorState {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -70,24 +71,24 @@ impl Serialize for SimulatorState <'_> {
     }
 }
 
-impl<'a> SimulatorState<'a> {
+impl SimulatorState {
 
     // Constructor for the initial state at time 0.
-    pub fn new() -> SimulatorState<'a> {
+    pub fn new() -> SimulatorState {
 
         SimulatorState {vehicles: VecDeque::new(), pedestrians: VecDeque::new(), timestamp: 0}
     }
 
     // Construct a state with arbitrary content
     pub fn dummy(vehicles: VecDeque<Box<dyn Vehicle>>,
-        pedestrians: VecDeque<Pedestrian<'a>>,
-        timestamp: Time) -> SimulatorState<'a> {
+        pedestrians: VecDeque<Pedestrian>,
+        timestamp: Time) -> SimulatorState {
 
         SimulatorState{vehicles, pedestrians, timestamp}
     }
 }
 
-impl<'a> State <'a> for SimulatorState<'a> {
+impl State  for SimulatorState {
 
     fn update(&mut self, delta_t: TimeDelta) {
         self.timestamp += delta_t;
@@ -120,16 +121,16 @@ impl<'a> State <'a> for SimulatorState<'a> {
         &self.get_pedestrians()[idx]
     }
 
-    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'a> {
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian {
         &mut self.pedestrians[idx]
     }
 
-    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'a>) -> usize {
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian) -> usize {
         self.pedestrians.push_back(pedestrian);
         self.pedestrians.len() - 1
     }
 
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'a> {
+    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian {
         todo!()
         // TODO: should this really be "pop" if it is taking a particular idx
         // TODO: if it is taking particular idx this breaks order of vector
@@ -178,11 +179,11 @@ mod tests {
         let car2 = Car::new(2, Direction::Down, 10.0,Action::Accelerate);
 
         // Make test crossing
-        let test_pelican = Crossing::pelican(0);
+        let test_pelican = RefCell::new(Crossing::pelican(0));
 
         // Make test pedestrians
-        let ped1 = Pedestrian::new(1, &test_pelican, 0);
-        let ped2 = Pedestrian::new(2, &test_pelican, 20);
+        let ped1 = Pedestrian::new(1, test_pelican.to_owned(), 0);
+        let ped2 = Pedestrian::new(2, test_pelican.to_owned(), 20);
 
         // Make ped_vec and veh_vec
         let ped_vec: Vec<Pedestrian> = vec![ped1, ped2];

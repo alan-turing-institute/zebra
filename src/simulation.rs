@@ -12,7 +12,7 @@ use crate::state::{State, SimulatorState};
 use crate::vehicle::{Vehicle, Car};
 
 
-pub trait Simulation <'a> {
+pub trait Simulation  {
 
     // get time interval until next event
     fn next_event(&mut self) -> Event;
@@ -23,7 +23,7 @@ pub trait Simulation <'a> {
     // update simulation state
     fn instantaneous_update(&mut self, event_type: EventType);
 
-    fn get_state(&self) -> &Box<dyn State<'a>> ;
+    fn get_state(&self) -> &Box<dyn State> ;
 
     fn handle_event(&mut self, event: EventType);
 

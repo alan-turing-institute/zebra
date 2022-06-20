@@ -14,8 +14,9 @@ use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE, DECCELERATI
 use crate::road::{Road, Direction, Crossing};
 use crate::state::{State, SimulatorState};
 use crate::obstacle::Obstacle;
+use std::cell::RefCell;
 
-pub struct EventDrivenSim <'a> {
+pub struct EventDrivenSim  {
 
     seed: u64,
     rng: StdRng,
@@ -34,10 +35,10 @@ pub struct EventDrivenSim <'a> {
     // dist: WeightedIndex<T>,
 
     road: Road,
-    pub state: Box<dyn State <'a>>
+    pub state: Box<dyn State >
 }
 
-impl <'a> EventDrivenSim <'a> {
+impl  EventDrivenSim  {
 
     pub fn new(
 	    seed: u64,
@@ -46,7 +47,7 @@ impl <'a> EventDrivenSim <'a> {
         ped_arrival_rate: f32,
         veh_arrival_rate: f32,
 	    // crossing_weights: Vec<f64>,
-        state: Box<dyn State<'a>>,
+        state: Box<dyn State>,
         road: Road) -> Self {
 
         assert!(end_time > start_time);
@@ -90,7 +91,8 @@ impl <'a> EventDrivenSim <'a> {
     }
 
     // Set the state arbitrarily. Useful for testing, but private.
-    fn set_state<'b>(&'b mut self, state: Box<dyn State<'a>>) {
+    // fn set_state<'b>(&'b mut self, state: Box<dyn State>) {
+    fn set_state(&mut self, state: Box<dyn State>) {
         self.state = state;
     }
 
@@ -128,8 +130,10 @@ impl <'a> EventDrivenSim <'a> {
         self.state.get_vehicle(idx)
     }
     // fn new_pedestrian(&'a mut self) -> &dyn Person {
-    fn new_pedestrian<'b>(&'b mut self) -> &dyn Person {
+    // fn new_pedestrian<'b>(&'b mut self) -> &dyn Person {
+    fn new_pedestrian(&mut self) -> &dyn Person {
         let n_crossings = self.road.get_crossings(&Direction::Up).len();
+        println!("{}", n_crossings);
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
         let (ref crossing, _) = self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
 
@@ -138,7 +142,7 @@ impl <'a> EventDrivenSim <'a> {
 
         // TODO: this bit of code making a new pedestrian causes issues because
         // pedestrian has a lifetime that needs to outlive the function
-        let pedestrian = Pedestrian::new(id, crossing, *self.state.timestamp());
+        let pedestrian = Pedestrian::new(id, RefCell::new(*crossing), *self.state.timestamp());
         let idx =self.state.push_pedestrian(pedestrian);
         self.state.get_pedestrian(idx)
         //
@@ -185,7 +189,7 @@ impl <'a> EventDrivenSim <'a> {
     }
 }
 
-impl <'a> Simulation <'a> for EventDrivenSim <'a> {
+impl  Simulation  for EventDrivenSim  {
     // get time interval until next event
     fn next_event(&mut self) -> Event {
 
@@ -255,12 +259,13 @@ impl <'a> Simulation <'a> for EventDrivenSim <'a> {
         self.handle_event(event_type)
     }
 
-    fn get_state(&self) -> &Box<dyn State<'a>> {
+    fn get_state(&self) -> &Box<dyn State> {
         &self.state
     }
 
     // fn handle_event(&'static mut self, event: Event) -> EventResult<'static> {
-    fn handle_event<'b>(&'b mut self, event: EventType) {
+    // fn handle_event<'b>(&'b mut self, event: EventType) {
+    fn handle_event(&mut self, event: EventType) {
         use EventType::*;
         match event {
             VehicleArrival => {
@@ -398,13 +403,13 @@ mod tests {
     use crate::vehicle::{DECCELERATION_VALUE, MAX_SPEED};
     use super::*;
 
-    fn dummy_sim<'a>(state: Box<dyn State <'a>>) -> EventDrivenSim <'a> {
+    fn dummy_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
         // let state = Box::new(SimulatorState::new());
         EventDrivenSim::new(147, 0, 500_000, 0.1, 0.2, state,  road)
     }
 
-    fn dummy_no_arrivals_sim<'a>(state: Box<dyn State <'a>>) -> EventDrivenSim <'a> {
+    fn dummy_no_arrivals_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
         // let state = Box::new(SimulatorState::new());
         EventDrivenSim::new(147, 0, 500_000, 0.0, 0.0, state, road)
