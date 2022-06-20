@@ -8,7 +8,7 @@ use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 use std::collections;
 use std::collections::vec_deque::IterMut;
-use std::cell::RefCell;
+use std::rc::Rc;
 
 pub trait State  {
 
@@ -179,18 +179,15 @@ mod tests {
         let car2 = Car::new(2, Direction::Down, 10.0,Action::Accelerate);
 
         // Make test crossing
-        let test_pelican = RefCell::new(Crossing::pelican(0));
+        let test_pelican = Rc::new(Crossing::pelican(0));
 
         // Make test pedestrians
         let ped1 = Pedestrian::new(1, test_pelican.to_owned(), 0);
-        let ped2 = Pedestrian::new(2, test_pelican.to_owned(), 20);
+        let ped2 = Pedestrian::new(2, test_pelican, 20);
 
         // Make ped_vec and veh_vec
         let ped_vec: Vec<Pedestrian> = vec![ped1, ped2];
-        let veh_vec: Vec<Box<dyn Vehicle>> = vec![car1, car2]
-            .drain(..)
-            .map(|car| Box::<dyn Vehicle>::from(Box::new(car)))
-            .collect();
+        let veh_vec: Vec<Box<dyn Vehicle>> = vec![Box::new(car1), Box::new(car2)];
 
         // Assign ped_vec and veh_vec to state
         test_state.pedestrians = ped_vec.into();

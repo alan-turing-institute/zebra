@@ -14,7 +14,7 @@ use crate::vehicle::{self, Action, Vehicle, Car, ACCELERATION_VALUE, DECCELERATI
 use crate::road::{Road, Direction, Crossing};
 use crate::state::{State, SimulatorState};
 use crate::obstacle::Obstacle;
-use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct EventDrivenSim  {
 
@@ -142,7 +142,7 @@ impl  EventDrivenSim  {
 
         // TODO: this bit of code making a new pedestrian causes issues because
         // pedestrian has a lifetime that needs to outlive the function
-        let pedestrian = Pedestrian::new(id, RefCell::new(*crossing), *self.state.timestamp());
+        let pedestrian = Pedestrian::new(id, Rc::new(*crossing), *self.state.timestamp());
         let idx =self.state.push_pedestrian(pedestrian);
         self.state.get_pedestrian(idx)
         //
