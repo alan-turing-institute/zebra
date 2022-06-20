@@ -133,13 +133,13 @@ impl EventDrivenSim {
             if rel_speed <= 0.0 {
                 None
             } else{
-                // We are at max speed, what time will we be in the braking zone 
+                // We are at max speed, what time should we start braking 
                 Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
             }
             
 
         } else if rel_accel > 0.0 {
-            // We are accelerating, what time will we be in the braking zone
+            // We are accelerating, what time should we start braking 
             Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
 
         } else {unreachable!()}
@@ -389,15 +389,24 @@ mod tests {
     fn test_vehicle_reaction_event() {
 
         // TODO.
-        // Use the "dummy" Car constructor to make two cars with given initial positions.
-        let v1 = Car::new(0,Direction::Up, 0.0, Action::StaticSpeed);
-        let v2 = Car::new(1, Direction::Up, MAX_SPEED, Action::StaticSpeed);
-        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(v1), Box::new(v2));
+        // Use the "dummy" Car constructor to make two cars with given initial speeds.
+        let v1 = Car::new(0,Direction::Up, MAX_SPEED, Action::StaticSpeed);
+        let vehicles: Vec<Box<dyn Vehicle>> = vec!(Box::new(v1));
         let timestamp = 24 * TIME_RESOLUTION;
         let state = SimulatorState::dummy(vehicles.into(), VecDeque::new(), timestamp);
 
         let mut sim = dummy_no_arrivals_sim();
         sim.set_state(Box::new(state));
+
+        // Let the simulation run
+        sim.roll_forward_by(time_delta::new(500));
+        
+        // Spawn new car
+        let v2 = Car::new(1, Direction::Up, MAX_SPEED, Action::StaticSpeed);
+        sim.roll_forward_by(time_delta::new(500));
+
+        // Check the time until start braking
+        
 
         // TODO.
         // Compute the time delta before the trailing car (v2) reaches the Brake region.
