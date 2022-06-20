@@ -152,6 +152,7 @@ impl Vehicle for Car {
 
         // Update the vehicle's speed.
         self.speed = self.speed + self.acceleration * seconds;
+        self.speed = self.speed.max(0.);
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
