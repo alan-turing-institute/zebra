@@ -142,7 +142,7 @@ impl <'a> EventDrivenSim <'a> {
         // let idx =self.state.push_pedestrian(pedestrian);
         // self.state.get_pedestrian(idx)
         //
-        // Current fake implementation to compile
+        // TODO: Current fake implementation to compile
         self.state.get_pedestrian(0)
     }
 
@@ -288,7 +288,8 @@ impl <'a> Simulation <'a> for EventDrivenSim <'a> {
             }
             PedestrianArrival => {
                 // EventResult::NewPedestrian(self.new_pedestrian())
-                self.new_pedestrian();
+                // TODO: commented out to test run without this call
+                // self.new_pedestrian();
             }
             PedestrianExit(idx) => {
                 self.remove_pedestrian(idx);
