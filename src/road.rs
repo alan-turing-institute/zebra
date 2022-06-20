@@ -271,7 +271,6 @@ mod tests {
     fn test_road_get_length_config() {
         let test_road = Road::config_new();
         let test_config = get_zebra_config();
-        // println!("{:?}", test_road.get_length());
         assert_eq!(test_road.get_length(), test_config.road_length);
     }
 
