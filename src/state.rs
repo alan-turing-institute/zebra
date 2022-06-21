@@ -6,8 +6,6 @@ use crate::road::{Direction, Crossing};
 use crate::pedestrian::Pedestrian;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
-use std::collections;
-use std::collections::vec_deque::IterMut;
 use std::rc::Rc;
 
 pub trait State  {
@@ -185,8 +183,8 @@ mod tests {
         let test_pelican = Rc::new(Crossing::pelican(0));
 
         // Make test pedestrians
-        let ped1 = Pedestrian::new(1, &test_pelican, 0);
-        let ped2 = Pedestrian::new(2, &test_pelican, 20);
+        let ped1 = Pedestrian::new(1, Rc::clone(&test_pelican), 0);
+        let ped2 = Pedestrian::new(2, Rc::clone(&test_pelican), 20);
 
         // Make ped_vec and veh_vec
         let ped_vec: Vec<Pedestrian> = vec![ped1, ped2];

@@ -134,12 +134,12 @@ impl  EventDrivenSim  {
     fn new_pedestrian(&mut self) -> &dyn Person {
         let n_crossings = self.road.get_crossings(&Direction::Up).len();
         let idx_dist = rand::distributions::WeightedIndex::new(vec![1./n_crossings as f32; n_crossings]).unwrap();
-        let (ref crossing, _) = self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
+        let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx_dist.sample(&mut self.rng)];
 
         let id = self.ped_counter;
         self.ped_counter += 1;
 
-        let pedestrian = Pedestrian::new(id, &crossing, *self.state.timestamp());
+        let pedestrian = Pedestrian::new(id, Rc::clone(crossing), *self.state.timestamp());
         let idx =self.state.push_pedestrian(pedestrian);
         self.state.get_pedestrian(idx)
     }
