@@ -100,11 +100,21 @@ mod tests {
 
     #[test]
     fn test_pedestrian_rc_equivalance() {
-        let test_zebra = Rc::new(Crossing::zebra(0));
+        let test_zeb1 = Rc::new(Crossing::zebra(0));
+        let test_zeb2 = Rc::new(Crossing::zebra(1));
         let arrival_time = 0;
-        let test_pedestrian = Pedestrian::new(0, Rc::clone(&test_zebra), arrival_time);
+        let test_ped1 = Pedestrian::new(0, Rc::clone(&test_zeb1), arrival_time);
+        let test_ped2 = Pedestrian::new(0, Rc::clone(&test_zeb2), arrival_time);
 
-        // Expect the reference to crossing to be the same in pedestrian as test_zebra
-        assert!(test_pedestrian.location.eq(&test_zebra));
+        // Check same values
+        assert!(test_ped1.location().eq(&test_zeb1));
+        assert!(test_ped2.location().eq(&test_zeb2));
+
+        // Check same references
+        assert!(Rc::ptr_eq(&test_ped1.location, &test_zeb1));
+        assert!(Rc::ptr_eq(&test_ped2.location, &test_zeb2));
+
+        // Check difference references
+        assert!(!Rc::ptr_eq(&test_ped1.location, &test_ped2.location));
     }
 }

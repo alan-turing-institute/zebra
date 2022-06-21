@@ -337,10 +337,14 @@ mod tests {
         for idx in 0..crossings_up.len() {
             // Get reverse order idx
             let idx_rev = crossings_up.len() - 1 - idx;
-            // Check Rc same at reverse index
+            // Check Rc value same at reverse index
             assert!(&crossings_up[idx].0.eq(&crossings_down[idx_rev].0));
-            // Check Rc different at same index
+            // Check Rc reference same at reverse index
+            assert!(Rc::ptr_eq(&crossings_up[idx].0, &crossings_down[idx_rev].0));
+            // Check Rc value different at same index
             assert!(&crossings_up[idx].0.ne(&crossings_down[idx].0));
+            // Check Rc reference different at same index
+            assert!(!Rc::ptr_eq(&crossings_up[idx].0, &crossings_down[idx].0));
         }
     }
 
