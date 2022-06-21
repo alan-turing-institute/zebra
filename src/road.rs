@@ -323,26 +323,33 @@ mod tests {
 
     #[test]
     fn test_road_get_crossings_rc_equivalence() {
-        let road = Road::config_new();
+        // Make test_road
+        let crossings = vec![
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+	    ];
+        let test_road = Road::new(30.0f32, crossings);
 
         // Check crossings_up and crossings_down have same shared pointer (Rc)
         // when reversed
-        let crossings_up = road.get_crossings(&Direction::Up);
-        let crossings_down = road.get_crossings(&Direction::Down);
-        for i in 0..crossings_up.len() {
-            let i_rev = crossings_up.len() - 1 - i;
-            let (crossing_up, _) = &crossings_up[i];
-            let (crossing_down, _) = &crossings_down[i_rev];
-            assert!(crossing_up.eq(crossing_down));
+        let crossings_up = test_road.get_crossings(&Direction::Up);
+        let crossings_down = test_road.get_crossings(&Direction::Down);
+        for idx in 0..crossings_up.len() {
+            // Get reverse order idx
+            let idx_rev = crossings_up.len() - 1 - idx;
+            // Check Rc same at reverse index
+            assert!(&crossings_up[idx].0.eq(&crossings_down[idx_rev].0));
+            // Check Rc different at same index
+            assert!(&crossings_up[idx].0.ne(&crossings_down[idx].0));
         }
     }
 
     #[test]
     fn test_get_crossing_position() {
         let crossings = vec![
-	    (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
-	    (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
-	];
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+	    ];
         let road = Road::new(30.0f32, crossings);
 
         assert_eq!(road.get_crossing_position(&0, Direction::Up), 10.0);
