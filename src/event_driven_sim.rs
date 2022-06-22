@@ -15,6 +15,7 @@ use crate::road::{Road, Direction, Crossing};
 use crate::state::{State, SimulatorState};
 use crate::obstacle::Obstacle;
 use std::rc::Rc;
+use crate::{raw_input};
 
 pub struct EventDrivenSim  {
 
@@ -33,9 +34,9 @@ pub struct EventDrivenSim  {
     ped_counter: ID,
     veh_counter: ID,
     // dist: WeightedIndex<T>,
-
+    pub state: Box<dyn State >,
     road: Road,
-    pub state: Box<dyn State >
+    verbose: bool
 }
 
 impl  EventDrivenSim  {
@@ -48,7 +49,9 @@ impl  EventDrivenSim  {
         veh_arrival_rate: f32,
 	    // crossing_weights: Vec<f64>,
         state: Box<dyn State>,
-        road: Road) -> Self {
+        road: Road,
+        verbose: bool
+    ) -> Self {
 
         assert!(end_time > start_time);
         assert!(ped_arrival_rate >= 0.0);
@@ -86,7 +89,8 @@ impl  EventDrivenSim  {
             veh_counter: 0,
             // dist,
             road,
-            state
+            state,
+            verbose
         }
     }
 
@@ -374,6 +378,9 @@ impl  Simulation  for EventDrivenSim  {
 
         let mut t: Time = 0;
         while t < self.end_time {
+            if self.verbose {
+                raw_input();
+            }
 
             let next_event = self.next_event();
 
@@ -400,13 +407,13 @@ mod tests {
     fn dummy_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
         // let state = Box::new(SimulatorState::new());
-        EventDrivenSim::new(147, 0, 500_000, 0.1, 0.2, state,  road)
+        EventDrivenSim::new(147, 0, 500_000, 0.1, 0.2, state,  road, false)
     }
 
     fn dummy_no_arrivals_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
         // let state = Box::new(SimulatorState::new());
-        EventDrivenSim::new(147, 0, 500_000, 0.0, 0.0, state, road)
+        EventDrivenSim::new(147, 0, 500_000, 0.0, 0.0, state, road, false)
     }
 
     #[test]
@@ -523,7 +530,7 @@ mod tests {
 
         let road = Road::new(300.0f32, crossings);
         let state = Box::new(SimulatorState::new());
-        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.2, state, road);
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.2, state, road, false);
 
         sim.run();
     

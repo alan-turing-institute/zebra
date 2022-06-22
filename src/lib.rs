@@ -22,3 +22,12 @@ pub type Position = Length;
 pub use road::*;
 pub use config::get_zebra_config;
 pub use simulation::Simulation;
+
+use std::io;                                                                                                                                                              
+fn raw_input() -> () {                                                                                                                                                    
+    let mut buffer = String::new();                                                                                                                                       
+    io::stdin()                                                                                                                                                           
+        .read_line(&mut buffer)                                                                                                                                           
+        .map_err(|err| println!("{:?}", err))                                                                                                                             
+        .ok();                                                                                                                                                            
+} 
