@@ -13,5 +13,5 @@ max_speed = 13.41
 run_time = 600_000
 num_pedestrians = 500
 num_vehicles = 500
-pedestrian_arrival_rate = 5
+pedestrian_arrival_rate = 0.1
 vehicle_arrival_rate = 5

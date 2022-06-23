@@ -214,6 +214,7 @@ impl Vehicle for Car {
             if &crossing.get_position(&road, my_direction) < &self.get_veh_position() {
                 continue;
             }
+            println!("{:?}", crossing);
             return Option::Some((crossing, position))
         }
 

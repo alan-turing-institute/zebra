@@ -122,7 +122,8 @@ impl  EventDrivenSim  {
     // }
 
     fn new_vehicle(&mut self) -> &dyn Vehicle {
-        let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
+        // let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
+        let direction_dist = rand::distributions::WeightedIndex::new(&[1., 0.]).unwrap();
         let direction = if direction_dist.sample(&mut self.rng) == 0{
             Direction::Up
         } else {
@@ -163,6 +164,28 @@ impl  EventDrivenSim  {
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
         let buffer_zone: f32 = vehicle.get_buffer_zone();
 
+        // Formulation of time to reach buffer zone:
+        //
+        // x1 = x1_0 + u1 * t + 1/2 * a1 * t^2
+        // x2 = x2_0 + u2 * t + 1/2 * a1 * t^2
+        // What time is:
+        // x1 - x2 = -b ?
+        // 
+        // x1 - x2 = dx (always less than 0)
+        // u1 - u2 = du
+        // a1 - a2 = da
+        //
+        //
+        // ---
+        // if da = 0
+        // t = -(dx + b)/du
+        //
+        // ---
+        // if da > 0 (car has relative acc towards vehicle)
+        // t = (-du + sqrt(du**2 - 2 * da * (dx + b))) / da
+        // ---
+
+        // TODO: Check these equations, they don't look right
         if rel_accel < 0.0 {
             // Obstacle is accelerating away from the vehicle.
             None
@@ -174,13 +197,15 @@ impl  EventDrivenSim  {
                 None
             } else{
                 // We are at max speed, what time will we be in the braking zone
-                Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
+                // Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
+                Some(-(rel_position + buffer_zone)/rel_speed)
             }
 
 
         } else if rel_accel > 0.0 {
             // We are accelerating, what time will we be in the braking zone
-            Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
+            // Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
+            Some((-rel_speed + f32::sqrt(rel_speed*rel_speed - 2.0 * rel_accel * (rel_position + buffer_zone)) / rel_accel))
 
         } else {unreachable!()}
 
@@ -226,6 +251,7 @@ impl  Simulation  for EventDrivenSim  {
 
             // Crossing obstacles:
             if let Some((ref crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
+                println!("{:?}", crossing_obstacle);
                 if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, *crossing_obstacle) {
                     let t_delta = TimeDelta::from(t_delta_crossing);
                     events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
