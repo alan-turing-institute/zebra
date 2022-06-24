@@ -175,7 +175,6 @@ impl  EventDrivenSim  {
         // u1 - u2 = du
         // a1 - a2 = da
         //
-        //
         // ---
         // if da = 0
         // t = -(dx + b)/du
@@ -205,7 +204,7 @@ impl  EventDrivenSim  {
         } else if rel_accel > 0.0 {
             // We are accelerating, what time will we be in the braking zone
             // Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
-            Some((-rel_speed + f32::sqrt(rel_speed*rel_speed - 2.0 * rel_accel * (rel_position + buffer_zone)) / rel_accel))
+            Some(-rel_speed + f32::sqrt(rel_speed*rel_speed - 2.0 * rel_accel * (rel_position + buffer_zone)) / rel_accel)
 
         } else {unreachable!()}
 
