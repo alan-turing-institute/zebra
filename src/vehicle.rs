@@ -12,6 +12,7 @@ use crate::state::State;
 use crate::event_driven_sim::EventDrivenSim;
 use crate::simulation::Simulation;
 use crate::obstacle::{Obstacle, AsObstacle};
+use std::rc::Rc;
 
 pub const MAX_SPEED: f32 = 13.41;
 pub const ACCELERATION_VALUE: f32 = 3.0;
@@ -34,7 +35,7 @@ pub trait Vehicle : Obstacle {
     fn get_veh_position(&self) -> f32;
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
-    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>;
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&Rc<Crossing>, &f32)>;
     fn relative_speed(&self, obstacle: &dyn Obstacle) -> f32;
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
     fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
@@ -115,10 +116,10 @@ impl<T: Obstacle> AsObstacle for T {
 
 impl Vehicle for Car {
     fn set_id(&mut self, id: ID) {
-	self.id = id;
+        self.id = id;
     }
     fn get_id(&self) -> ID {
-	self.id
+        self.id
     }
     fn get_length(&self) -> f32 {
        self.length
@@ -199,7 +200,7 @@ impl Vehicle for Car {
         &self.get_acceleration() - obstacle.get_acceleration()
     }
 
-    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>{
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&Rc<Crossing>, &f32)>{
 
         let my_direction = &self.get_direction();
         let crossings = road.get_crossings(my_direction);
@@ -362,10 +363,13 @@ mod tests {
         // assert_eq!(next_data.1, &10.0);
 
         let vehicle = Car::new(0, Direction::Up, 0.0, Action::Accelerate);
-        let actual = vehicle.next_crossing(&road).unwrap();
+        let (actual_crossing, actual_pos) = vehicle.next_crossing(&road).unwrap();
 
-        // assert_eq!(actual.0, &road.get_crossings(&Direction::Up)[0].0);
-        assert_eq!(actual.1, &10.0);
+        assert!(Rc::ptr_eq(&actual_crossing, &road.get_crossings(&Direction::Up)[0].0));
+        assert!(actual_crossing.eq(&road.get_crossings(&Direction::Up)[0].0));
+        assert_eq!(actual_pos, &10.0);
+        // assert!(actual_crossing, &road.get_crossings(&Direction::Up)[0].0);
+        // assert_eq!(actual.1, &10.0);
     }
 
     #[test]

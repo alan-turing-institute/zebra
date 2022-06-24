@@ -221,8 +221,8 @@ impl  Simulation  for EventDrivenSim  {
             // Logic to check for obstacle-related events.
 
             // Crossing obstacles:
-            if let Some((ref crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
-                if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, *crossing_obstacle) {
+            if let Some((crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
+                if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, &**crossing_obstacle) {
                     let t_delta = TimeDelta::from(t_delta_crossing);
                     events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
                 }
