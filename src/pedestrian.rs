@@ -1,5 +1,6 @@
+use crate::obstacle::Obstacle;
 use crate::{Time, ID};
-use crate::road::{Crossing, CROSSING_TIME};
+use crate::road::{Crossing, CROSSING_TIME, Direction, Road};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 use std::rc::Rc;
@@ -7,11 +8,11 @@ use std::rc::Rc;
 pub trait Person {
     fn set_id(&mut self, id: ID);
     fn get_id(&self) -> ID;
-    fn location(&self) -> Crossing;
+    fn location(&self) -> &Rc<Crossing>;
     fn arrival_time(&self) -> Time;
 }
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct Pedestrian {
     id: ID,
     location: Rc<Crossing>,
@@ -19,8 +20,8 @@ pub struct Pedestrian {
 }
 
 impl Person for Pedestrian {
-    fn location(&self) -> Crossing {
-        *self.location
+    fn location(&self) -> &Rc<Crossing> {
+        &self.location
     }
 
     fn arrival_time(&self) -> Time {
@@ -32,9 +33,39 @@ impl Person for Pedestrian {
     }
 
     fn get_id(&self) -> ID {
-	self.id
+        self.id
     }
 }
+
+impl Obstacle for Pedestrian {
+    fn get_position(&self, road: &Road, direction: &Direction) -> f32 {
+        // Check that the direction matches my direction.
+        // let my_direction = &self.get_direction();
+        // assert!(matches!(direction, my_direction));
+        // self.location
+        let id = self.location().get_id();
+        road.get_crossing_position(&id, *direction)
+    }
+
+    fn get_speed(&self) -> f32 {
+        0.0
+    }
+
+    fn get_acceleration(&self) -> f32 {
+        0.0
+    }
+
+    fn is_active(&self, time: Time) -> bool {
+        let arrival_time = self.arrival_time();
+        let crossing_time = self.location.stop_time();
+        let end_time = crossing_time + arrival_time;
+        if time < end_time && time >= arrival_time {
+            return true;
+        }
+        false
+    }
+}
+
 
 impl Pedestrian {
     pub fn new(id: ID, location: Rc<Crossing>, arrival_time: Time) -> Pedestrian {
@@ -84,7 +115,7 @@ mod tests {
     fn test_pedestrian_location() {
         let test_pelican = Rc::new(Crossing::pelican(0));
         let test_pedestrian = Pedestrian::new(0, Rc::clone(&test_pelican), 0);
-        assert_eq!(test_pedestrian.location(), *test_pelican);
+        assert_eq!(*test_pedestrian.location(), test_pelican);
     }
 
     #[test]

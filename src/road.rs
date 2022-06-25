@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 use crate::obstacle::Obstacle;
 use crate::{ID, TimeDelta};
 use crate::config::{get_zebra_config};
-use crate::{Length, Position};
+use crate::{Length, Position, Time};
 use std::rc::Rc;
 
 #[derive(Copy,Clone,Serialize,Deserialize)]
@@ -17,7 +17,7 @@ pub enum Direction {
 pub enum Crossing {
     Zebra {
 	    id: ID, // unique identifier
-        cross_time: TimeDelta
+        cross_time: TimeDelta,
     },
     Pelican {
 	    id: ID, // unique identifier
@@ -102,12 +102,17 @@ impl Obstacle for Crossing {
     fn get_acceleration(&self) -> f32 {
         0.0
     }
+
+    fn is_active(&self, _: Time) -> bool {
+        true
+    }
 }
 
 pub struct Road {
     length: Length,
     crossings_up: Vec<(Rc<Crossing>, Position)>,
     crossings_down: Vec<(Rc<Crossing>, Position)>
+    // crossings_down: Vec<(Crossing, Position)>
 }
 
 fn get_crossings_up_and_down(length: Length, crossings: Vec<(Crossing, Position)>) -> (Vec<(Rc<Crossing>, Position)>, Vec<(Rc<Crossing>, Position)>) {

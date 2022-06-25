@@ -1,4 +1,4 @@
-
+use crate::{Time};
 use crate::road::{Road, Direction};
 
 // Workaround for lack of trait upcasting coercion.
@@ -16,5 +16,7 @@ pub trait Obstacle : AsObstacle {
     fn get_speed(&self) -> f32;
 
     fn get_acceleration(&self) -> f32;
+
+    fn is_active(&self, time: Time) -> bool;
 }
 

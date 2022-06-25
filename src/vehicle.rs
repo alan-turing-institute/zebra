@@ -2,6 +2,7 @@ use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 use std::collections::VecDeque;
 
+use crate::pedestrian::Pedestrian;
 use crate::{Time, ID};
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
@@ -36,6 +37,7 @@ pub trait Vehicle : Obstacle {
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
     fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&Rc<Crossing>, &f32)>;
+    fn next_pedestrian<'a>(&'a self, road: &'a Road, peds: &'a VecDeque<Pedestrian>, time: Time) -> Option<&Pedestrian>;
     fn relative_speed(&self, obstacle: &dyn Obstacle) -> f32;
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
     fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
@@ -105,6 +107,10 @@ impl Obstacle for Car{
 
     fn get_acceleration(&self) -> f32 {
         self.acceleration
+    }
+
+    fn is_active(&self, _: Time) -> bool {
+        true
     }
 }
 
@@ -223,6 +229,24 @@ impl Vehicle for Car {
         Option::None
     }
 
+    fn next_pedestrian<'a>(&'a self, road: &'a Road, peds: &'a VecDeque<Pedestrian>, time: Time) -> Option<&Pedestrian> {
+        let my_direction = &self.get_direction();
+        if peds.len() == 0 {
+            return Option::None
+        }
+        for ped in peds {
+            // If ped is active (crossing), then check if vehicle is at position less than the
+            // crossing.
+            if ped.is_active(time) {
+                let pos = ped.get_position(road, my_direction);
+                if self.get_veh_position() < pos {
+                    // println!("Pedestrian up ahead: {:?}", ped);
+                    return Some(&ped);
+                }
+            }
+        }
+        None
+    }
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
 
         let my_direction = &self.get_direction();
