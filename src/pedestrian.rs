@@ -130,6 +130,19 @@ mod tests {
     }
 
     #[test]
+    fn test_pedestrian_is_active() {
+        let test_zebra = Rc::new(Crossing::zebra(0));
+        let arrival_time = 2000;
+        let test_pedestrian = Pedestrian::new(0, Rc::clone(&test_zebra), arrival_time);
+
+        // Expect the exit time to be the arrival time plus the time taken to cross.
+        assert_eq!(test_pedestrian.is_active(arrival_time - 1), false);
+        assert_eq!(test_pedestrian.is_active(arrival_time), true);
+        assert_eq!(test_pedestrian.is_active(arrival_time + test_zebra.stop_time() - 1), true);
+        assert_eq!(test_pedestrian.is_active(arrival_time + test_zebra.stop_time()), false);
+    }
+
+    #[test]
     fn test_pedestrian_rc_equivalance() {
         let test_zeb1 = Rc::new(Crossing::zebra(0));
         let test_zeb2 = Rc::new(Crossing::zebra(1));

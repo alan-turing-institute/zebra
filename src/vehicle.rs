@@ -63,6 +63,7 @@ impl Serialize for dyn Vehicle {
     }
 }
 
+#[derive(Debug)]
 pub struct Car {
     id: ID,
     length: f32,
@@ -166,8 +167,15 @@ impl Vehicle for Car {
         // Update the vehicle's position.
         self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
 
+
+        // println!{"{}", "Before:"}
+        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
+
         // Update the vehicle's speed.
         self.speed = self.speed + self.acceleration * seconds;
+
+        // println!{"{}", "After:"}
+        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
@@ -221,7 +229,7 @@ impl Vehicle for Car {
             if &crossing.get_position(&road, my_direction) < &self.get_veh_position() {
                 continue;
             }
-            println!("{:?}", crossing);
+            // println!("{:?}", crossing);
             return Option::Some((crossing, position))
         }
 

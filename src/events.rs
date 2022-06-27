@@ -1,5 +1,5 @@
 use crate::pedestrian::Person;
-use crate::{Crossing, Time};
+use crate::{ID, Crossing, Time};
 use crate::vehicle::{Vehicle};
 
 use std::cmp::{Ord, Eq, Ordering};
@@ -15,7 +15,7 @@ pub enum EventType {
     ReactionToObstacle(usize),
 
     PedestrianArrival,
-    PedestrianExit(usize),
+    PedestrianExit(ID),
 
     LightsToRed(usize),
     LightsToGreen(usize),

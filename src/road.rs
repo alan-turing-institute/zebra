@@ -7,7 +7,7 @@ use crate::config::{get_zebra_config};
 use crate::{Length, Position, Time};
 use std::rc::Rc;
 
-#[derive(Copy,Clone,Serialize,Deserialize)]
+#[derive(Copy,Clone,Serialize,Deserialize,Debug)]
 pub enum Direction {
     Up,
     Down
@@ -161,8 +161,6 @@ impl Road {
 
         // Assign length from config
         let length = config.road_length;
-
-        println!("{:?}", length);
 
         // Load in crossings
         let mut crossings: Vec<(Crossing, Position)> = Vec::new();

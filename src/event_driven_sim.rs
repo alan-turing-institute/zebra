@@ -67,11 +67,6 @@ impl  EventDrivenSim  {
         let ped_arrival_times = arrival_times(&start_time, &end_time, ped_arrival_rate, &mut rng);
         let veh_arrival_times = arrival_times(&start_time, &end_time, veh_arrival_rate, &mut rng);
 
-        // TODO: Make vector of pedestrian and vehicle ids
-        // let pedestrians = generate_pedestrians();
-        // let cars = generate_pedestrians();
-        // vec: 0..veh_arrival_times.len()
-
         // Construct initial (empty) state at time 0.
         // let state = Box::new(SimulatorState::new());
         // let state = Box::new(SimulatorState::new());
@@ -130,11 +125,11 @@ impl  EventDrivenSim  {
             Direction::Down
         };
 
-        // Increment veh counter
-        // TODO: uncomment to fix multiple vehicles, currently panics
-        // self.veh_counter += 1;
+        let vehicle = Car::new(self.veh_counter, direction, MAX_SPEED, Action::StaticSpeed);
 
-        let vehicle = Car::new(0, direction, MAX_SPEED, Action::StaticSpeed);
+        // Increment veh counter
+        self.veh_counter += 1;
+
         let idx = self.state.push_vehicle(Box::new(vehicle));
         self.state.get_vehicle(idx)
     }
@@ -157,8 +152,13 @@ impl  EventDrivenSim  {
         self.state.pop_vehicle(idx);
     }
 
-    fn remove_pedestrian(&mut self, idx: usize) {
-        self.state.pop_pedestrian(idx);
+    fn remove_pedestrian(&mut self, id: ID) {
+        for (idx, ped) in self.state.get_pedestrians().into_iter().enumerate() {
+            if ped.get_id() == id {
+                self.state.pop_pedestrian(idx);
+                break;
+            }
+        }
     }
 
     fn time_to_obstacle_event<T:Obstacle + ?Sized>(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle) -> Option<f32> {
@@ -166,12 +166,20 @@ impl  EventDrivenSim  {
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+
+        // TODO: buffer zone with pedestrian causing problem, set to 0.1 to run
+        // OK, but needs debugging. The issue may be caused by pedestrians
+        // arriving and crossing when the vehicle is too close (i.e. inside
+        // buffer zone) so a negative time to event is produced. If this is the
+        // problem, we could introduce "emergency breaking" sufficient to stop
+        // in time and so that the pedestrian does not wait.
         let buffer_zone: f32 = vehicle.get_buffer_zone();
+        let buffer_zone: f32 = 0.01;
 
         // Formulation of time to reach buffer zone:
         //
         // x1 = x1_0 + u1 * t + 1/2 * a1 * t^2
-        // x2 = x2_0 + u2 * t + 1/2 * a1 * t^2
+        // x2 = x2_0 + u2 * t + 1/2 * a2 * t^2
         // What time is:
         // x1 - x2 = -b ?
         // 
@@ -227,22 +235,26 @@ impl  Simulation  for EventDrivenSim  {
         if let Some(&arrival_time) = self.ped_arrival_times.get((self.ped_counter) as usize) {
             if arrival_time > curr_time {
                 events.push(Event(arrival_time, EventType::PedestrianArrival));
+                // TODO: double check the below commented out line is not required
+                // given pedestrian loop on L253
+                // events.push(Event(TimeDelta::from_secs(10) + arrival_time, EventType::PedestrianExit(self.ped_counter)));
             }
         }
         // Veh arrival events.
         if let Some(&arrival_time) = self.veh_arrival_times.get((self.veh_counter) as usize) {
-            if self.verbose {
-                println!("Veh arr time: {}", arrival_time);
-            }
+            // if self.verbose {
+                // println!("Veh arr time: {}", arrival_time);
+            // }
             if arrival_time > curr_time {
                 events.push(Event(arrival_time, EventType::VehicleArrival));
             }
         }
 
         // Look over pedestrians to do exits
-        for (i, ped) in self.state.get_pedestrians().into_iter().enumerate() {
-            if !ped.is_active(*self.state.timestamp()) {
-                events.push(Event(TimeDelta::from(10) + ped.arrival_time(), EventType::PedestrianExit(i)));                
+        for ped in self.state.get_pedestrians().into_iter() {
+            // println!("{}", ped.get_id());
+            if ped.is_active(*self.state.timestamp()) {
+                events.push(Event(ped.location().stop_time() + ped.arrival_time(), EventType::PedestrianExit(ped.get_id())));
             }
         }
 
@@ -266,19 +278,39 @@ impl  Simulation  for EventDrivenSim  {
                 events.push(Event(curr_time + t_delta, EventType::ZeroSpeedReached(i)));
             }
 
+            // TODO: refactor to exit_time function
             // Vehicle exit: pos, speed are positive
             // speed * t + 0.5 * accel * t * t = road_length - position [position always less than road length]
-            // 0.5 * accel * t * t - speed * t - (road_length - position) = 0
-            // t = (speed + sqrt(speed * speed + 2 * accel * (road_length - positiion)))/accel
+            // 0.5 * accel * t * t + speed * t - (road_length - position) = 0
+            // t = (- speed + sqrt(speed * speed + 2 * accel * (road_length - positiion)))/accel
             let pos = vehicle.get_position(&self.road, &vehicle.get_direction());
             let speed = vehicle.get_speed();
             let accel = vehicle.get_acceleration();
             let mut t_delta: f32 = 0.0;
-            if accel != 0.0 {
-                t_delta = (speed + f32::sqrt(speed * speed + 2. * accel * (&self.road.get_length() - pos)))/accel;
-            } else {
+            let sqrt_value = speed * speed + 2. * accel * (&self.road.get_length() - pos);
+            // Valid sqrt and non-zero acceleration
+            if accel != 0.0 &&  sqrt_value >= 0.0 {
+                let numer = -speed + f32::sqrt(sqrt_value);
+                let denom = accel;
+                let pos_sol = numer / denom;
+                let numer = -speed - f32::sqrt(sqrt_value);
+                let denom = accel;
+                let neg_sol = numer / denom;
+                if pos_sol >= 0.0 {
+                    t_delta = pos_sol;
+                } else {
+                    t_delta = neg_sol;
+                }
+            }
+            // Zero acceleration and moving
+            else if accel == 0.0 && speed > 0.0 {
                 t_delta = (&self.road.get_length() - pos) / speed;
             }
+            // No solution
+            else {
+                t_delta = f32::INFINITY;
+            }
+
             // Check it is finite
             if f32::is_finite(t_delta) {
                 let t_delta = TimeDelta::from(t_delta);
@@ -307,11 +339,16 @@ impl  Simulation  for EventDrivenSim  {
             // Pedestrian obstacles:
             if let Some(ped_obstacle) = vehicle.next_pedestrian(
                 &self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp()) {
-                if self.verbose {
-                    println!("{:?}", ped_obstacle);
-                }
-                if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, ped_obstacle) {
-                    let t_delta = TimeDelta::from(t_delta_crossing);
+                // if self.verbose {
+                    // println!("{:?}", ped_obstacle);
+                // }
+                if let Some(t_delta_ped) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, ped_obstacle) {
+                    // TODO: determine whether to assert always positive/how to handle negative times.
+
+                    let t_delta = TimeDelta::from(t_delta_ped);
+                    // if i == 287 {
+                    //     println!("ped obs:{:?}, veh pos: {:?}", ped_obstacle, vehicle.get_position(self.get_road(), &vehicle.get_direction()));
+                    // }
                     events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
                 }
             }
@@ -330,7 +367,7 @@ impl  Simulation  for EventDrivenSim  {
         // Print if verbose
         if self.verbose {
             for (i, event) in events.clone().into_iter().enumerate() {
-                println!("Event {}: {:?}", i, event);
+                println!("Event {}: {:?} :: ", i, event);
             }
         }
         // This is infallible since the vector always contains the termination time
@@ -381,11 +418,10 @@ impl  Simulation  for EventDrivenSim  {
             }
             PedestrianArrival => {
                 // EventResult::NewPedestrian(self.new_pedestrian())
-                // TODO: commented out to test run without this call
                 self.new_pedestrian();
             }
-            PedestrianExit(idx) => {
-                self.remove_pedestrian(idx);
+            PedestrianExit(id) => {
+                self.remove_pedestrian(id);
                 // EventResult::RemovePedestrian
             }
             LightsToRed(idx) => {
@@ -475,8 +511,9 @@ impl  Simulation  for EventDrivenSim  {
             let next_event = self.next_event();
 
             if self.verbose {
-                println!("{:?}", next_event);
+                println!("Time: {}; Next event: {:?}", t, next_event);
             }
+
 
             self.roll_forward_by(TimeDelta::new(next_event.0 - t));
 
