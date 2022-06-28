@@ -13,6 +13,32 @@ pub enum Direction {
     Down
 }
 
+#[derive(Debug)]
+pub struct Exit {
+    position: Length
+}
+
+impl Exit {
+    pub fn new(position: Length) -> Exit {
+        Exit {position}
+    }
+}
+
+impl Obstacle for Exit {
+    fn get_position(&self, road: &Road, direction: &Direction) -> Length {
+        self.position
+    }
+    fn get_speed(&self) -> f32 {
+        0.0
+    }
+    fn get_acceleration(&self) -> f32 {
+        0.0
+    }
+    fn is_active(&self, _: Time) -> bool {
+        true
+    }
+}
+
 #[derive(Debug, Copy, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Crossing {
     Zebra {
@@ -111,8 +137,8 @@ impl Obstacle for Crossing {
 pub struct Road {
     length: Length,
     crossings_up: Vec<(Rc<Crossing>, Position)>,
-    crossings_down: Vec<(Rc<Crossing>, Position)>
-    // crossings_down: Vec<(Crossing, Position)>
+    crossings_down: Vec<(Rc<Crossing>, Position)>,
+    exit: Exit
 }
 
 fn get_crossings_up_and_down(length: Length, crossings: Vec<(Crossing, Position)>) -> (Vec<(Rc<Crossing>, Position)>, Vec<(Rc<Crossing>, Position)>) {
@@ -150,7 +176,9 @@ impl Road {
         // Make vec of crossings for up and down with Rc
         let (crossings_up, crossings_down) = get_crossings_up_and_down(length, crossings);        
 
-        Road { length, crossings_up, crossings_down}
+        let exit = Exit::new(length);
+
+        Road { length, crossings_up, crossings_down, exit}
     }
 
     // Here the position of the crossings is assumed to be in the `Up` direction.
@@ -192,11 +220,18 @@ impl Road {
         // Make vec of crossings for up and down with Rc
         let (crossings_up, crossings_down) = get_crossings_up_and_down(length, crossings);
 
-        Road { length, crossings_up, crossings_down }
+        // Make exit
+        let exit = Exit::new(length);
+
+        Road { length, crossings_up, crossings_down, exit }
     }
 
     pub fn get_length(&self) -> Length {
         self.length
+    }
+
+    pub fn get_exit(&self) -> &Exit {
+        &self.exit
     }
 
     pub fn get_crossings(&self, direction: &Direction) -> &[(Rc<Crossing>, Position)]
@@ -294,6 +329,20 @@ mod tests {
         let (crossing, _) = &road.get_crossings(&Direction::Up)[1];
         assert_eq!(crossing.get_position(&road, &Direction::Up), 13.0);
         assert_eq!(crossing.get_position(&road, &Direction::Down), 30.0 - 13.0);
+    }
+
+    #[test]
+    fn test_get_exit() {
+
+        let crossings = vec![
+            (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(25) }, 10.0),
+            (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 13.0),
+        ];
+        let road = Road::new(30f32, crossings);
+
+        let exit = road.get_exit(); 
+        assert_eq!(exit.get_position(&road, &Direction::Up), 30.0);
+        assert_eq!(exit.get_position(&road, &Direction::Down), 30.0);
     }
 
 

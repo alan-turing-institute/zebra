@@ -34,6 +34,8 @@ pub trait Vehicle : Obstacle {
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
     fn get_veh_position(&self) -> f32;
+    fn set_position(&mut self, pos: f32);
+    fn set_speed(&mut self, speed: f32);
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
     fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&Rc<Crossing>, &f32)>;
@@ -77,8 +79,8 @@ pub struct Car {
 impl Car {
     pub fn new(id: ID, direction: Direction, speed: f32, action: Action) -> Car {
 	let mut car = Car {
-	    id: id,
-	    position: 0.0f32,
+	        id: id,
+	        position: 0.0f32,
             length: 4.0f32,
             buffer_zone: 1.0f32,
             direction,
@@ -142,6 +144,15 @@ impl Vehicle for Car {
     fn get_veh_position(&self) -> f32 {
         self.position
     }
+
+    fn set_position(&mut self, pos: f32) {
+        self.position = pos;
+    }
+
+    fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
+    }
+
 
     fn action(&mut self, action:Action) {
         match action {

@@ -14,6 +14,8 @@ pub enum EventType {
     ZeroSpeedReached(usize),
     ReactionToObstacle(usize),
 
+    EmergencyStop(usize),
+
     PedestrianArrival,
     PedestrianExit(ID),
 
