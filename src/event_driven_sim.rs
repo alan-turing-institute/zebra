@@ -205,32 +205,25 @@ impl  EventDrivenSim  {
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
 
         assert!(rel_position <= 0.0);
-        assert!(rel_speed >= 0.0);
         assert!(DECCELERATION_VALUE - obstacle.get_acceleration() != 0.0);
 
-        // TODO:
-        // - Make time to event fn
-        // - Make boolean fn "can stop in time"
-
-        // TODO: buffer zone with pedestrian causing problem, set to 0.1 to run
-        // OK, but needs debugging. The issue may be caused by pedestrians
-        // arriving and crossing when the vehicle is too close (i.e. inside
-        // buffer zone) so a negative time to event is produced. If this is the
-        // problem, we could introduce "emergency breaking" sufficient to stop
-        // in time and so that the pedestrian does not wait.
+        // Get the relative position for required breaking zone
         let x_breaking_pos_and_buffer: f32 = self.get_breaking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, use_buffer).unwrap();
-
 
         // Formulation of time to reach buffer zone:
         //
         // x1 = x1_0 + u1 * t + 1/2 * a1 * t^2
         // x2 = x2_0 + u2 * t + 1/2 * a2 * t^2
         // What time is:
-        // x1 - x2 = -b ?
+        // x1 - x2 = breaking zone ?
         // 
         // x1 - x2 = dx (always less than 0)
         // u1 - u2 = du
         // a1 - a2 = da
+        //
+        // ---
+        // if da < 0
+        // No reaction is needed as cannot currently decelerate more than single -ve value
         //
         // ---
         // if da = 0
@@ -238,22 +231,26 @@ impl  EventDrivenSim  {
         //
         // ---
         // if da > 0 (car has relative acc towards vehicle)
-        //  1/2 * (da) * t^2 + (du) * t + rel_position = x_breaking_pos_and_buffer
-        // t = (-du + sqrt(du**2 + 2 * da * (rel_position - x_breaking_pos_and_buffer) / da
+        // 1/2 * (da) * t^2 + (du) * t + rel_position = x_breaking_pos_and_buffer
+        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - x_breaking_pos_and_buffer) / da
         // ---
 
-        // TODO: Check these equations, they don't look right
+        // TODO: Check these equations
         let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - x_breaking_pos_and_buffer);
         if rel_accel < 0.0 {
+            // Deprecated as the reaction cannot decrease acceleration further
             // Obstacle is accelerating away from the vehicle.
-            if  sqrt_value >= 0.0 {
-                // We want the -ve root as this will be the earliest contact point before passing "back"
-                let solution = (-rel_speed - f32::sqrt(sqrt_value)) / rel_accel;
-                Some(solution)
-            }
-            else {
-                None
-            }
+            // if  sqrt_value >= 0.0 {
+            //     // We want the -ve root as this will be the earliest contact point before passing "back"
+            //     let solution = (-rel_speed - f32::sqrt(sqrt_value)) / rel_accel;
+            //     Some(solution)
+            // }
+            // else {
+            //     None
+            // }
+            
+            // No action is possible to decelerate further, so no need to calculate
+            None
 
         } else if rel_accel == 0.0 {
 
@@ -303,9 +300,7 @@ impl  Simulation  for EventDrivenSim  {
 
         // Look over pedestrians to do exits
         for ped in self.state.get_pedestrians().into_iter() {
-            if ped.is_active(*self.state.timestamp()) {
-                events.push(Event(ped.location().stop_time() + ped.arrival_time(), EventType::PedestrianExit(ped.get_id())));
-            }
+            events.push(Event(ped.location().stop_time() + ped.arrival_time(), EventType::PedestrianExit(ped.get_id())));
         }
 
         // Vehicle arrival events
@@ -341,8 +336,6 @@ impl  Simulation  for EventDrivenSim  {
             if let Some(ped_obstacle) = vehicle.next_pedestrian(
                 &self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp()
                 ) {
-                // println!("PED: {:?}", ped_obstacle);
-
                 // TODO: determine whether "can stop in time"
                 let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, ped_obstacle, true);
                 match breaking_pos_and_buffer {
@@ -356,7 +349,9 @@ impl  Simulation  for EventDrivenSim  {
                     },
                     None => {
                         // Emergency stop at next time
-                        events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
+                        if vehicle.get_speed() != 0.0 {
+                            events.push(Event(curr_time, EventType::EmergencyStop(i)));
+                        }
                     }
                 }
             }
@@ -392,7 +387,9 @@ impl  Simulation  for EventDrivenSim  {
                     // If already in breaking zone
                     None => {
                         // Emergency stop at next time
-                        events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
+                        if vehicle.get_speed() != 0.0 {
+                            events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
+                        }
                     }
                 }
             }
