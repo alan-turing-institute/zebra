@@ -1,7 +1,8 @@
 road_length = 400
-zebra_crossings = [80]
+zebra_crossings = [80, 340]
+pelican_crossings = []
 # zebra_crossings = [80, 200]
-pelican_crossings = [340]
+# pelican_crossings = [340]
 max_acceleration = 4.0
 max_deceleration = 3.0
 crossing_time = 8000
@@ -14,4 +15,4 @@ run_time = 600_000
 num_pedestrians = 500
 num_vehicles = 500
 pedestrian_arrival_rate = 0.1
-vehicle_arrival_rate = 1.0
+vehicle_arrival_rate = 2

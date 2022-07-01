@@ -1,4 +1,4 @@
-use crate::Time;
+use crate::{Time, raw_input};
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car, Action};
 use std::collections::VecDeque;

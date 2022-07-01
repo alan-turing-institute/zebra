@@ -149,23 +149,68 @@ impl  EventDrivenSim  {
     }
 
     fn remove_vehicle(&mut self, idx: usize) {
+        // If all vehicles are Up, then this should hold.
+        // assert_eq!(idx, 0);
         self.state.pop_vehicle(idx);
     }
 
     fn remove_pedestrian(&mut self, id: ID) {
         for (idx, ped) in self.state.get_pedestrians().into_iter().enumerate() {
             if ped.get_id() == id {
+                // It should always be oldest at front if crossing times are
+                // the same for all pedestrians.
+                // If this is correct, we can refactor this inefficient loop
+                // and state to do `pedestrians.pop_front();`
+                assert_eq!(idx, 0);
                 self.state.pop_pedestrian(idx);
                 break;
             }
         }
     }
 
-    fn time_to_obstacle_event<T:Obstacle + ?Sized>(&self, vehicle: &dyn Vehicle, obstacle: &dyn Obstacle, use_buffer: bool) -> Option<f32> {
+    fn get_breaking_pos_and_buffer<T:Obstacle + ?Sized>(
+        &self, vehicle: &dyn Vehicle,
+        obstacle: &dyn Obstacle,
+        use_buffer: bool
+    ) -> Option<f32> {
+        let rel_accel = vehicle.relative_acceleration(obstacle);
+        let rel_speed = vehicle.relative_speed(obstacle);
+        let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+
+        assert!(rel_position <= 0.0);
+        assert!(rel_speed >= 0.0);
+        // assert!(DECCELERATION_VALUE - obstacle.get_acceleration() != 0.0);
+
+        // Get the position of breaking zone
+        let breaking_dist = -(rel_speed * rel_speed)/(2. * (DECCELERATION_VALUE - obstacle.get_acceleration()));
+
+        let x_breaking_pos_and_buffer: f32 = match use_buffer {
+            true => -(vehicle.get_buffer_zone() + breaking_dist),
+            // true => ve,
+            false => 0.0
+        };
+        if rel_position - x_breaking_pos_and_buffer <= 0.0 {
+            return Some(x_breaking_pos_and_buffer);
+        }
+        None
+    }
+    fn time_to_obstacle_event<T:Obstacle + ?Sized>(
+        &self, vehicle: &dyn Vehicle,
+        obstacle: &dyn Obstacle,
+        use_buffer: bool
+    ) -> Option<f32> {
 
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+
+        assert!(rel_position <= 0.0);
+        assert!(rel_speed >= 0.0);
+        assert!(DECCELERATION_VALUE - obstacle.get_acceleration() != 0.0);
+
+        // TODO:
+        // - Make time to event fn
+        // - Make boolean fn "can stop in time"
 
         // TODO: buffer zone with pedestrian causing problem, set to 0.1 to run
         // OK, but needs debugging. The issue may be caused by pedestrians
@@ -173,11 +218,8 @@ impl  EventDrivenSim  {
         // buffer zone) so a negative time to event is produced. If this is the
         // problem, we could introduce "emergency breaking" sufficient to stop
         // in time and so that the pedestrian does not wait.
-        let buffer_zone: f32 = match use_buffer {
-            // true => vehicle.get_buffer_zone(),
-            true => 0.1,
-            false => 0.0
-        };
+        let x_breaking_pos_and_buffer: f32 = self.get_breaking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, use_buffer).unwrap();
+
 
         // Formulation of time to reach buffer zone:
         //
@@ -196,32 +238,18 @@ impl  EventDrivenSim  {
         //
         // ---
         // if da > 0 (car has relative acc towards vehicle)
-        //  1/2 * (da) * t^2 + (du) * t + (dx + b) = 0
-        // t = (-du + sqrt(du**2 - 2 * da * (dx + b))) / da
+        //  1/2 * (da) * t^2 + (du) * t + rel_position = x_breaking_pos_and_buffer
+        // t = (-du + sqrt(du**2 + 2 * da * (rel_position - x_breaking_pos_and_buffer) / da
         // ---
 
         // TODO: Check these equations, they don't look right
+        let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - x_breaking_pos_and_buffer);
         if rel_accel < 0.0 {
             // Obstacle is accelerating away from the vehicle.
-            let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position + buffer_zone);
             if  sqrt_value >= 0.0 {
-                // We want the +ve root as this will be the earliest contact point before passing "back"
-                let solution = (-rel_speed + f32::sqrt(sqrt_value)) / rel_accel;
+                // We want the -ve root as this will be the earliest contact point before passing "back"
+                let solution = (-rel_speed - f32::sqrt(sqrt_value)) / rel_accel;
                 Some(solution)
-
-                // Enforce the solution to pick a time greater than or equal to 1ms,
-                // otherwise will not increment timestamp. This assumes no event if can't
-                // stop in time.
-                // With emergency stop event, ignoring crash events is not
-                // needed and is commented out now.
-                // let solution = (-rel_speed + f32::sqrt(sqrt_value)) / rel_accel;
-                // if TimeDelta::from(solution) >= TimeDelta::from(0.001) {
-                //     // println!("{:?}", solution);
-                //     Some(solution)
-                // }
-                // else {
-                //     None
-                // }
             }
             else {
                 None
@@ -235,14 +263,14 @@ impl  EventDrivenSim  {
             } else{
                 // We are at max speed, what time will we be in the braking zone
                 // Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
-                Some(-(rel_position + buffer_zone)/rel_speed)
+                Some(-(rel_position - x_breaking_pos_and_buffer)/rel_speed)
             }
 
 
         } else if rel_accel > 0.0 {
             // We are accelerating, what time will we be in the braking zone
             // Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
-            Some((-rel_speed + f32::sqrt(rel_speed*rel_speed - 2.0 * rel_accel * (rel_position + buffer_zone))) / rel_accel)
+            Some((-rel_speed + f32::sqrt(sqrt_value)) / rel_accel)
 
         } else {unreachable!()}
 
@@ -308,52 +336,64 @@ impl  Simulation  for EventDrivenSim  {
                 events.push(Event(curr_time + t_delta, EventType::VehicleExit(i)));
             }
 
-            // Crossing obstacles:
-            // TODO: remove as deprecated with pedestrian obstacles
-            // if let Some((crossing_obstacle, _)) = vehicle.next_crossing(&self.get_road()) {
-            //     if self.verbose {
-            //         println!("{:?}", crossing_obstacle);
-            //     }
-            //     if let Some(t_delta_crossing) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, &**crossing_obstacle) {
-            //         let t_delta = TimeDelta::from(t_delta_crossing);
-            //         events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
-            //     }
-            // }
-
             // Loop over pedestrians in state to get active pedestrians
             // Pedestrian obstacles:
             if let Some(ped_obstacle) = vehicle.next_pedestrian(
-                &self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp()) {
-                if let Some(t_delta_ped) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, ped_obstacle, true) {
-                    // TODO: determine whether to assert always positive/how to handle negative times.
+                &self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp()
+                ) {
+                // println!("PED: {:?}", ped_obstacle);
 
-                    let t_delta = TimeDelta::from(t_delta_ped);
-                    let accel = vehicle.get_acceleration();
-                    if accel < 0.0 {
-                        let t_delta_stop = TimeDelta::from(vehicle.get_speed() / -accel);
-                        if t_delta < t_delta_stop {
-                            // This event is necessary to prevent crashes and infinite loop
-                            events.push(Event(curr_time + t_delta, EventType::EmergencyStop(i)));
-                            // Previous
-                            // events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
-                        }
-                        else {
-                            events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));        
-                        }
-                    }
-                    else {
-                        events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+                // TODO: determine whether "can stop in time"
+                let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, ped_obstacle, true);
+                match breaking_pos_and_buffer {
+                    Some(_) => {
+                        match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, ped_obstacle, true) {
+                            Some(t_delta) => {
+                                events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
+                            },
+                            None => ()
+                        };
+                    },
+                    None => {
+                        // Emergency stop at next time
+                        events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
                     }
                 }
             }
 
             // Vehicle obstacles:
             if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
-                // Upcast vehicle_obstacle to the Base trait Obstacle.
+                // // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_osbstacle();
-                if let Some(t_delta_vehicle) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true){
-                    let t_delta = TimeDelta::from(t_delta_vehicle);
-                    events.push(Event(curr_time + t_delta, EventType::ReactionToObstacle(i)));
+
+                // If already decelerating, no breaking zone, so when is emergency?
+                if DECCELERATION_VALUE - obstacle.get_acceleration() == 0.0 {
+                    let delta_x = -vehicle.get_buffer_zone() - (
+                        vehicle.get_position(&self.road, &vehicle.get_direction())
+                        - obstacle.get_position(&self.road, &vehicle.get_direction())
+                    );
+                    assert!(delta_x >= vehicle.get_buffer_zone());
+                    let delta_t = delta_x / (vehicle.get_speed() - obstacle.get_speed());
+                    events.push(Event(curr_time + TimeDelta::from(delta_t), EventType::EmergencyStop(i)));
+                }
+                
+                // Get where breaking zone occurs
+                let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, obstacle, true);
+                match breaking_pos_and_buffer {
+                    // If behind breaking zone
+                    Some(_) => {
+                        match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
+                            Some(t_delta) => {
+                                events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
+                            },
+                            None => ()
+                        };
+                    },
+                    // If already in breaking zone
+                    None => {
+                        // Emergency stop at next time
+                        events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
+                    }
                 }
             }
         }
@@ -374,7 +414,7 @@ impl  Simulation  for EventDrivenSim  {
     }
 
     // Update the state instantaneously based on the type of event.
-    fn instantaneous_update(&mut self, event: &Event, time: Time) {
+    fn instantaneous_update(&mut self, event: EventType, time: Time) {
         self.handle_event(event, time)
     }
 
@@ -384,62 +424,56 @@ impl  Simulation  for EventDrivenSim  {
 
     // fn handle_event(&'static mut self, event: Event) -> EventResult<'static> {
     // fn handle_event<'b>(&'b mut self, event: EventType) {
-    fn handle_event(&mut self, event: &Event, time: Time) {
+    fn handle_event(&mut self, event: EventType, time: Time) {
         use EventType::*;
         match event {
-            Event{1: VehicleArrival, ..} => {
+            VehicleArrival => {
                 self.new_vehicle();
                 // EventResult::NewVehicle(self.new_vehicle())
             }
-            Event{1: VehicleExit(idx), ..} => {
-                self.remove_vehicle(*idx);
+            VehicleExit(idx) => {
+                self.remove_vehicle(idx);
                 // EventResult::RemoveVehicle
             }
-            Event{1:SpeedLimitReached(idx), ..} => {
-                let vehicle = self.state.get_mut_vehicle(*idx);
+            SpeedLimitReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
             }
-            Event{1:ZeroSpeedReached(idx), ..} => {
-                let vehicle = self.state.get_mut_vehicle(*idx);
+            ZeroSpeedReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
             }
-            Event{1:EmergencyStop(idx), 0: next_time} => {
-                let vehicle = self.state.get_mut_vehicle(*idx);
-                let seconds: f32 = TimeDelta::new(next_time - time).into();
-                vehicle.set_position(
-                    vehicle.get_veh_position()
-                    + vehicle.get_speed() * seconds
-                    + (0.5 * vehicle.get_acceleration() * seconds * seconds)
-                );
+            EmergencyStop(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
                 vehicle.set_speed(0.0);
                 vehicle.action(Action::StaticSpeed);
             }
-            Event{1:ReactionToObstacle(idx), ..} => {
-                let vehicle = self.state.get_mut_vehicle(*idx);
+            ReactionToObstacle(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
                 vehicle.action(Action::Deccelerate);
                 // EventResult::VehicleChange(&*vehicle)
             }
-            Event{1:PedestrianArrival, ..} => {
+            PedestrianArrival => {
                 // EventResult::NewPedestrian(self.new_pedestrian())
                 self.new_pedestrian();
             }
-            Event{1:PedestrianExit(id), ..} => {
-                self.remove_pedestrian(*id);
+            PedestrianExit(id) => {
+                self.remove_pedestrian(id);
                 // EventResult::RemovePedestrian
             }
-            Event{1:LightsToRed(idx), ..} => {
-                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[*idx];
+            LightsToRed(idx) => {
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
                 // TODO.
                 // EventResult::CrossingChange(crossing)
             }
-            Event{1: LightsToGreen(idx), ..} => {
-                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[*idx];
+            LightsToGreen(idx) => {
+                let (crossing, _) = &self.road.get_crossings(&Direction::Up)[idx];
                 // TODO.
                 // EventResult::CrossingChange(crossing)
             }
-            Event{1:StopSimulation, ..} => {
+            StopSimulation => {
                 // EventResult::NoEffect
                 // Nothing to do.
             }
@@ -522,7 +556,7 @@ impl  Simulation  for EventDrivenSim  {
 
             self.roll_forward_by(TimeDelta::new(next_event.0 - t));
 
-            self.instantaneous_update(&next_event, t);
+            self.instantaneous_update(next_event.1, t);
 
             t = next_event.0;
 
