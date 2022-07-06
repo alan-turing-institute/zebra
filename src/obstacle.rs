@@ -6,7 +6,7 @@ use crate::road::{Road, Direction};
 // and https://stackoverflow.com/questions/28632968/why-doesnt-rust-support-trait-object-upcasting/28664881
 // for the workaround.
 pub trait AsObstacle {
-    fn as_osbstacle(&self) -> &dyn Obstacle;
+    fn as_obstacle(&self) -> &dyn Obstacle;
 }
 
 pub trait Obstacle : AsObstacle {

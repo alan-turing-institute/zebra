@@ -21,11 +21,11 @@ pub trait Simulation  {
     fn roll_forward_by(&mut self, time_delta: TimeDelta);
 
     // update simulation state
-    fn instantaneous_update(&mut self, event_type: EventType, time: Time);
+    fn instantaneous_update(&mut self, event_type: EventType);
 
     fn get_state(&self) -> &Box<dyn State> ;
 
-    fn handle_event(&mut self, event: EventType, time: Time);
+    fn handle_event(&mut self, event: EventType);
 
     fn get_road(&self) -> &Road;
 

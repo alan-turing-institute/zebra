@@ -118,7 +118,7 @@ impl Obstacle for Car{
 }
 
 impl<T: Obstacle> AsObstacle for T {
-    fn as_osbstacle(&self) -> &dyn Obstacle {
+    fn as_obstacle(&self) -> &dyn Obstacle {
         self
     }
 }
