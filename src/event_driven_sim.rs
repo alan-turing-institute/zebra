@@ -2,7 +2,7 @@ use rand::{SeedableRng}; // SeedableRng needed for the seed_from_u64 method.
 use rand::rngs::StdRng;
 use rand::distributions::WeightedIndex;
 use rand::prelude::Distribution;
-use serde_json::to_string as to_json;
+use serde_json::to_string_pretty as to_json;
 
 use crate::events::{Event, EventResult, EventType};
 use crate::pedestrian::Person;
