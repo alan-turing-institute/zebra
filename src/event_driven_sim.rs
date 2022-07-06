@@ -182,7 +182,7 @@ impl  EventDrivenSim  {
             true => {
                 // Get the position of breaking zone
                 let breaking_dist = -(rel_speed * rel_speed)/(2. * (DECCELERATION_VALUE - obstacle.get_acceleration()));
-                -(vehicle.get_buffer_zone() + breaking_dist)
+                -(breaking_dist + vehicle.get_buffer_zone())
             },
             false => 0.0
         };
@@ -348,25 +348,31 @@ impl  Simulation  for EventDrivenSim  {
                     // If already in breaking zone
                     None => {
                         // Not using currently: Emergency stop at next time
-                        // if vehicle.get_speed() != 0.0 {
-                        //     events.push(Event(curr_time, EventType::EmergencyStop(i)));
-                        // }
+                        if vehicle.get_speed() != 0.0 {
+                            events.push(Event(curr_time, EventType::EmergencyStop(i)));
+                        }
                     }
                 }
             }
 
             // Vehicle obstacles:
             if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
+                println!("Vehicle: {}, Next Vehicle: {}", &to_json(vehicle).unwrap(), &to_json(vehicle_obstacle).unwrap());
+
                 // // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_obstacle();
 
-                // If already decelerating, no breaking zone, so when is emergency?
-                if vehicle.get_acceleration() == obstacle.get_acceleration() && vehicle.get_acceleration() == DECCELERATION_VALUE {
+                // TODO: consideration for obstacle with negative acceleration required
+                // Should this just be handled as returning a "time to buffer" with emergency stop
+
+                // If obstacle decelerating, then no way of decelerating faster, so when is emergency?
+                if obstacle.get_acceleration() == DECCELERATION_VALUE {
                     let delta_x = -vehicle.get_buffer_zone() - (
                         vehicle.get_position(&self.road, &vehicle.get_direction())
                         - obstacle.get_position(&self.road, &vehicle.get_direction())
                     );
-                    assert!(delta_x >= vehicle.get_buffer_zone());
+                    // Aside from rounding, must be behind obstacle 
+                    assert!(delta_x >= -0.01);
                     // Time vehicle catches up
                     let delta_t = delta_x / (vehicle.get_speed() - obstacle.get_speed());
                     // Time vehicle stops
@@ -377,25 +383,26 @@ impl  Simulation  for EventDrivenSim  {
                         events.push(Event(curr_time + TimeDelta::from(delta_t), EventType::EmergencyStop(i)));
                     }
                 }
-                
-                // Get where breaking zone occurs
-                let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, obstacle, true);
-                match breaking_pos_and_buffer {
-                    // If behind breaking zone
-                    Some(_) => {
-                        match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
-                            Some(t_delta) => {
-                                events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
-                            },
-                            None => ()
-                        };
-                    },
-                    // If already in breaking zone
-                    None => {
-                        // Not using currently: Emergency stop at next time
-                        // if vehicle.get_speed() != 0.0 {
-                        //     events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
-                        // }
+                else {
+                    // Get where breaking zone occurs
+                    let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, obstacle, true);
+                    match breaking_pos_and_buffer {
+                        // If behind breaking zone
+                        Some(_) => {
+                            match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
+                                Some(t_delta) => {
+                                    events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
+                                },
+                                None => ()
+                            };
+                        },
+                        // If already in breaking zone
+                        None => {
+                            // Emergency stop at next time
+                            if vehicle.get_speed() != 0.0 {
+                                events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
+                            }
+                        }
                     }
                 }
             }

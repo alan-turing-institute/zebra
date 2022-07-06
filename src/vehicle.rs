@@ -166,24 +166,20 @@ impl Vehicle for Car {
 
         let mut seconds: f32 = time_delta.into();
 
-        // If acceleration is negative, check if the time to stop is less than
-        // the time to roll_forward_by. If so, set seconds as this time instead.
-        if self.acceleration < 0. {
-            let time_to_zero = -self.speed/self.acceleration;
-            if time_to_zero < seconds {
-                seconds = time_to_zero;
-            }
-        }
-
         // Update the vehicle's position.
-        self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
+        // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
+        // Round to 2 dec places to avoid incorrect small +ves and -ves
+        self.position = ((
+            self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
+        )*100.0).round()/100.0;
 
 
         // println!{"{}", "Before:"}
         // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
 
         // Update the vehicle's speed.
-        self.speed = self.speed + self.acceleration * seconds;
+        // Round to 2 dec places to avoid incorrect small +ves and -ves
+        self.speed = ((self.speed + self.acceleration * seconds) * 100.0).round()/100.0;
 
         // println!{"{}", "After:"}
         // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
@@ -267,14 +263,13 @@ impl Vehicle for Car {
         None
     }
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
-
         let my_direction = &self.get_direction();
         if vehicles.len() == 0 {
             return Option::None
         }
-        for vehicle in vehicles {
-            // Ignore vehicles going in the other direction.
-            if matches!(vehicle.get_direction(), my_direction) {
+        for vehicle in vehicles.into_iter().rev() {
+            // Ignore vehicles going in the other direction OR are the same vehicle
+            if !matches!(vehicle.get_direction(), my_direction) || vehicle.get_id() == self.get_id() {
                 continue;
             }
 
