@@ -168,7 +168,7 @@ impl  EventDrivenSim  {
         }
     }
 
-    fn get_breaking_pos_and_buffer<T:Obstacle + ?Sized>(
+    fn get_braking_pos_and_buffer<T:Obstacle + ?Sized>(
         &self, vehicle: &dyn Vehicle,
         obstacle: &dyn Obstacle,
         reaction_event: bool
@@ -178,17 +178,19 @@ impl  EventDrivenSim  {
 
         assert!(rel_position <= 0.0);
 
-        let x_breaking_pos_and_buffer: f32 = match reaction_event {
+        let rel_position_braking: f32 = match reaction_event {
             true => {
-                // Get the position of breaking zone
-                let breaking_dist = -(rel_speed * rel_speed)/(2. * (DECCELERATION_VALUE - obstacle.get_acceleration()));
-                -(breaking_dist + vehicle.get_buffer_zone())
+                // Get the position of braking zone
+                let braking_dist = -(rel_speed * rel_speed)/(2. * (DECCELERATION_VALUE - obstacle.get_acceleration()));
+                -(braking_dist + vehicle.get_buffer_zone())
             },
             false => 0.0
         };
-        if rel_position - x_breaking_pos_and_buffer <= 0.0 {
-            return Some(x_breaking_pos_and_buffer);
+        // If behind braking zone
+        if rel_position - rel_position_braking <= 0.0 {
+            return Some(rel_position_braking);
         }
+        // If inside braking zone
         None
     }
     fn time_to_obstacle_event<T:Obstacle + ?Sized>(
@@ -201,18 +203,19 @@ impl  EventDrivenSim  {
         let rel_speed = vehicle.relative_speed(obstacle);
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
 
+        // Vehicle must be behind obstacle
         assert!(rel_position <= 0.0);
-        assert!(DECCELERATION_VALUE - obstacle.get_acceleration() != 0.0);
 
-        // Get the relative position for required breaking zone
-        let x_breaking_pos_and_buffer: f32 = self.get_breaking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, reaction_event).unwrap();
+        // Obstacle must not be decelerating as not handled by this fn
+        assert!(DECCELERATION_VALUE != obstacle.get_acceleration());
 
         // Formulation of time to reach buffer zone:
-        //
+        // -----------------------------------------
         // x1 = x1_0 + u1 * t + 1/2 * a1 * t^2
         // x2 = x2_0 + u2 * t + 1/2 * a2 * t^2
+        //
         // What time is:
-        // x1 - x2 = breaking zone ?
+        // x1 - x2 = braking zone ?
         // 
         // x1 - x2 = dx (always less than 0)
         // u1 - u2 = du
@@ -228,12 +231,15 @@ impl  EventDrivenSim  {
         //
         // ---
         // if da > 0 (car has relative acc towards vehicle)
-        // 1/2 * (da) * t^2 + (du) * t + rel_position = x_breaking_pos_and_buffer
-        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - x_breaking_pos_and_buffer) / da
+        // 1/2 * (da) * t^2 + (du) * t + rel_position = rel_position_braking
+        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - rel_position_braking) / da
         // ---
 
-        // TODO: Check these equations
-        let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - x_breaking_pos_and_buffer);
+        // TODO: Check the equations below
+        
+        // Get the relative position for required braking zone
+        let rel_position_braking: f32 = self.get_braking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, reaction_event).unwrap();
+        let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - rel_position_braking);
         if rel_accel < 0.0 {
             // Obstacle is not a reaction event and is accelerating away
             if !reaction_event {
@@ -258,7 +264,7 @@ impl  EventDrivenSim  {
             } else{
                 // We are at max speed, what time will we be in the braking zone
                 // Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
-                Some(-(rel_position - x_breaking_pos_and_buffer)/rel_speed)
+                Some(-(rel_position - rel_position_braking)/rel_speed)
             }
 
 
@@ -335,8 +341,9 @@ impl  Simulation  for EventDrivenSim  {
                 &self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp()
                 ) {
                 // Determine whether "can stop in time"
-                let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, ped_obstacle, true);
-                match breaking_pos_and_buffer {
+                let braking_pos_and_buffer: Option<f32> = self.get_braking_pos_and_buffer::<dyn Obstacle>(&**vehicle, ped_obstacle, true);
+                match braking_pos_and_buffer {
+                    // If behind braking zone, time at which braking must be applied
                     Some(_) => {
                         match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, ped_obstacle, true) {
                             Some(t_delta) => {
@@ -345,9 +352,9 @@ impl  Simulation  for EventDrivenSim  {
                             None => ()
                         };
                     },
-                    // If already in breaking zone
+                    // If ahead of braking zone
                     None => {
-                        // Not using currently: Emergency stop at next time
+                        // If speed is non-zero, must emergency stop
                         if vehicle.get_speed() != 0.0 {
                             events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
@@ -359,13 +366,14 @@ impl  Simulation  for EventDrivenSim  {
             if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
                 println!("Vehicle: {}, Next Vehicle: {}", &to_json(vehicle).unwrap(), &to_json(vehicle_obstacle).unwrap());
 
-                // // Upcast vehicle_obstacle to the Base trait Obstacle.
+                // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_obstacle();
 
                 // TODO: consideration for obstacle with negative acceleration required
                 // Should this just be handled as returning a "time to buffer" with emergency stop
 
-                // If obstacle decelerating, then no way of decelerating faster, so when is emergency?
+                // If obstacle decelerating, then no way of decelerating at greater rate than
+                // obstacle, so when is emergency?
                 if obstacle.get_acceleration() == DECCELERATION_VALUE {
                     let delta_x = -vehicle.get_buffer_zone() - (
                         vehicle.get_position(&self.road, &vehicle.get_direction())
@@ -384,10 +392,10 @@ impl  Simulation  for EventDrivenSim  {
                     }
                 }
                 else {
-                    // Get where breaking zone occurs
-                    let breaking_pos_and_buffer: Option<f32> = self.get_breaking_pos_and_buffer::<dyn Obstacle>(&**vehicle, obstacle, true);
-                    match breaking_pos_and_buffer {
-                        // If behind breaking zone
+                    // Get where braking zone occurs
+                    let braking_pos_and_buffer: Option<f32> = self.get_braking_pos_and_buffer::<dyn Obstacle>(&**vehicle, obstacle, true);
+                    match braking_pos_and_buffer {
+                        // If behind braking zone, time at which braking must be applied
                         Some(_) => {
                             match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
                                 Some(t_delta) => {
@@ -396,11 +404,11 @@ impl  Simulation  for EventDrivenSim  {
                                 None => ()
                             };
                         },
-                        // If already in breaking zone
+                        // If ahead of braking zone
                         None => {
-                            // Emergency stop at next time
+                            // If speed is non-zero, must emergency stop
                             if vehicle.get_speed() != 0.0 {
-                                events.push(Event(curr_time + 1, EventType::EmergencyStop(i)));
+                                events.push(Event(curr_time, EventType::EmergencyStop(i)));
                             }
                         }
                     }
