@@ -2,6 +2,7 @@ use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
 use std::collections::VecDeque;
 
+use crate::pedestrian::Pedestrian;
 use crate::{Time, ID};
 use crate::time::TimeDelta;
 use crate::time::TIME_RESOLUTION;
@@ -12,6 +13,7 @@ use crate::state::State;
 use crate::event_driven_sim::EventDrivenSim;
 use crate::simulation::Simulation;
 use crate::obstacle::{Obstacle, AsObstacle};
+use std::rc::Rc;
 
 pub const MAX_SPEED: f32 = 13.41;
 pub const ACCELERATION_VALUE: f32 = 3.0;
@@ -32,9 +34,12 @@ pub trait Vehicle : Obstacle {
     fn get_buffer_zone(&self) -> f32;
     fn get_direction(&self) -> Direction;
     fn get_veh_position(&self) -> f32;
+    fn set_position(&mut self, pos: f32);
+    fn set_speed(&mut self, speed: f32);
     fn action(&mut self, action:Action);
     fn roll_forward_by(&mut self, duration: TimeDelta);
-    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>;
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&Rc<Crossing>, &f32)>;
+    fn next_pedestrian<'a>(&'a self, road: &'a Road, peds: &'a VecDeque<Pedestrian>, time: Time) -> Option<&Pedestrian>;
     fn relative_speed(&self, obstacle: &dyn Obstacle) -> f32;
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
     fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
@@ -60,6 +65,7 @@ impl Serialize for dyn Vehicle {
     }
 }
 
+#[derive(Debug)]
 pub struct Car {
     id: ID,
     length: f32,
@@ -73,8 +79,8 @@ pub struct Car {
 impl Car {
     pub fn new(id: ID, direction: Direction, speed: f32, action: Action) -> Car {
 	let mut car = Car {
-	    id: id,
-	    position: 0.0f32,
+	        id: id,
+	        position: 0.0f32,
             length: 4.0f32,
             buffer_zone: 1.0f32,
             direction,
@@ -105,20 +111,24 @@ impl Obstacle for Car{
     fn get_acceleration(&self) -> f32 {
         self.acceleration
     }
+
+    fn is_active(&self, _: Time) -> bool {
+        true
+    }
 }
 
 impl<T: Obstacle> AsObstacle for T {
-    fn as_osbstacle(&self) -> &dyn Obstacle {
+    fn as_obstacle(&self) -> &dyn Obstacle {
         self
     }
 }
 
 impl Vehicle for Car {
     fn set_id(&mut self, id: ID) {
-	self.id = id;
+        self.id = id;
     }
     fn get_id(&self) -> ID {
-	self.id
+        self.id
     }
     fn get_length(&self) -> f32 {
        self.length
@@ -135,6 +145,15 @@ impl Vehicle for Car {
         self.position
     }
 
+    fn set_position(&mut self, pos: f32) {
+        self.position = pos;
+    }
+
+    fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
+    }
+
+
     fn action(&mut self, action:Action) {
         match action {
             Action::Accelerate  => self.acceleration = ACCELERATION_VALUE,
@@ -145,13 +164,28 @@ impl Vehicle for Car {
 
     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
-        let seconds: f32 = time_delta.into();
+        let mut seconds: f32 = time_delta.into();
 
         // Update the vehicle's position.
-        self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
+        // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
+        // Round to 2 dec places to avoid incorrect small +ves and -ves
+        // TODO: proper fix required
+        self.position = ((
+            self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
+        )*100.0).round()/100.0;
+
+
+        // println!{"{}", "Before:"}
+        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
 
         // Update the vehicle's speed.
-        self.speed = self.speed + self.acceleration * seconds;
+        // self.speed = self.speed + self.acceleration * seconds;
+        // Round to 2 dec places to avoid incorrect small +ves and -ves
+        // TODO: proper fix required
+        self.speed = ((self.speed + self.acceleration * seconds) * 100.0).round()/100.0;
+
+        // println!{"{}", "After:"}
+        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
@@ -190,7 +224,7 @@ impl Vehicle for Car {
         &self.get_acceleration() - obstacle.get_acceleration()
     }
 
-    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&'a Crossing, &'a f32)>{
+    fn next_crossing<'a>(&'a self, road: &'a Road) -> Option<(&Rc<Crossing>, &f32)>{
 
         let my_direction = &self.get_direction();
         let crossings = road.get_crossings(my_direction);
@@ -205,6 +239,7 @@ impl Vehicle for Car {
             if &crossing.get_position(&road, my_direction) < &self.get_veh_position() {
                 continue;
             }
+            // println!("{:?}", crossing);
             return Option::Some((crossing, position))
         }
 
@@ -212,15 +247,32 @@ impl Vehicle for Car {
         Option::None
     }
 
+    fn next_pedestrian<'a>(&'a self, road: &'a Road, peds: &'a VecDeque<Pedestrian>, time: Time) -> Option<&Pedestrian> {
+        let my_direction = &self.get_direction();
+        if peds.len() == 0 {
+            return Option::None
+        }
+        for ped in peds {
+            // If ped is active (crossing), then check if vehicle is at position less than the
+            // crossing.
+            if ped.is_active(time) {
+                let pos = ped.get_position(road, my_direction);
+                if self.get_veh_position() < pos {
+                    // println!("Pedestrian up ahead: {:?}", ped);
+                    return Some(&ped);
+                }
+            }
+        }
+        None
+    }
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
-
         let my_direction = &self.get_direction();
         if vehicles.len() == 0 {
             return Option::None
         }
-        for vehicle in vehicles {
-            // Ignore vehicles going in the other direction.
-            if matches!(vehicle.get_direction(), my_direction) {
+        for vehicle in vehicles.into_iter().rev() {
+            // Ignore vehicles going in the other direction OR are the same vehicle
+            if !matches!(vehicle.get_direction(), my_direction) || vehicle.get_id() == self.get_id() {
                 continue;
             }
 
@@ -353,10 +405,13 @@ mod tests {
         // assert_eq!(next_data.1, &10.0);
 
         let vehicle = Car::new(0, Direction::Up, 0.0, Action::Accelerate);
-        let actual = vehicle.next_crossing(&road).unwrap();
+        let (actual_crossing, actual_pos) = vehicle.next_crossing(&road).unwrap();
 
-        // assert_eq!(actual.0, &road.get_crossings(&Direction::Up)[0].0);
-        assert_eq!(actual.1, &10.0);
+        assert!(Rc::ptr_eq(&actual_crossing, &road.get_crossings(&Direction::Up)[0].0));
+        assert!(actual_crossing.eq(&road.get_crossings(&Direction::Up)[0].0));
+        assert_eq!(actual_pos, &10.0);
+        // assert!(actual_crossing, &road.get_crossings(&Direction::Up)[0].0);
+        // assert_eq!(actual.1, &10.0);
     }
 
     #[test]

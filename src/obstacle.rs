@@ -1,4 +1,4 @@
-
+use crate::{Time};
 use crate::road::{Road, Direction};
 
 // Workaround for lack of trait upcasting coercion.
@@ -6,7 +6,7 @@ use crate::road::{Road, Direction};
 // and https://stackoverflow.com/questions/28632968/why-doesnt-rust-support-trait-object-upcasting/28664881
 // for the workaround.
 pub trait AsObstacle {
-    fn as_osbstacle(&self) -> &dyn Obstacle;
+    fn as_obstacle(&self) -> &dyn Obstacle;
 }
 
 pub trait Obstacle : AsObstacle {
@@ -16,5 +16,7 @@ pub trait Obstacle : AsObstacle {
     fn get_speed(&self) -> f32;
 
     fn get_acceleration(&self) -> f32;
+
+    fn is_active(&self, time: Time) -> bool;
 }
 

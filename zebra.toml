@@ -1,16 +1,18 @@
+road_length = 400
+zebra_crossings = [80, 340]
+pelican_crossings = []
+# zebra_crossings = [80, 200]
+# pelican_crossings = [340]
+max_acceleration = 4.0
+max_deceleration = 3.0
+crossing_time = 8000
+pelican_wait_time = 5000
+pelican_go_time = 5000
+max_speed = 13.41
+
 [simulation]
 run_time = 600_000
 num_pedestrians = 500
 num_vehicles = 500
-pedestrian_arrival_rate = 5
-vehicle_arrival_rate = 5
-
-road_length = 400 // Make longer for steady state
-zebra_crossings = [80]
-// zebra_crossings = [80, 200]
-pelican_crossings = [340]
-
-
-// Specify all the information for the struct otherwise will fail
-[[crossings]]
-type = "Zebra"
+pedestrian_arrival_rate = 0.1
+vehicle_arrival_rate = 0.2
