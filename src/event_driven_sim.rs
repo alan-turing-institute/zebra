@@ -428,7 +428,7 @@ impl  Simulation  for EventDrivenSim  {
 
         // Print if verbose
         if self.verbose {
-            for (i, event) in events.clone().into_iter().enumerate() {
+            for (i, event) in events.iter().enumerate() {
                 println!("Event {}: {:?}", i, event);
             }
         }
