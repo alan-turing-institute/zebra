@@ -178,7 +178,7 @@ impl  EventDrivenSim  {
 
         assert!(rel_position <= 0.0);
 
-        let rel_position_braking: f32 = match reaction_event {
+        let rel_position_future: f32 = match reaction_event {
             true => {
                 // Get the position of braking zone
                 let braking_dist = -(rel_speed * rel_speed)/(2. * (DECCELERATION_VALUE - obstacle.get_acceleration()));
@@ -187,8 +187,8 @@ impl  EventDrivenSim  {
             false => 0.0
         };
         // If behind braking zone
-        if rel_position - rel_position_braking <= 0.0 {
-            return Some(rel_position_braking);
+        if rel_position - rel_position_future <= 0.0 {
+            return Some(rel_position_future);
         }
         // If inside braking zone
         None
@@ -232,13 +232,13 @@ impl  EventDrivenSim  {
         // t = -(dx + b)/du
         //
         // 3. da > 0
-        // 1/2 * da * t**2 + du * t + rel_position = rel_position_braking
-        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - rel_position_future) / da
+        // 1/2 * da * t**2 + du * t + rel_position = rel_position_future
+        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - rel_position_future))) / da
         // ---
         
         // Get the future relative position for required braking zone (reaction_event = true) or exit (reaction event = false)
-        let rel_position_braking: f32 = self.get_braking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, reaction_event).unwrap();
-        let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - rel_position_braking);
+        let rel_position_future: f32 = self.get_braking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, reaction_event).unwrap();
+        let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - rel_position_future);
         if rel_accel < 0.0 {
             // Obstacle is not a reaction event and is accelerating away
             if !reaction_event {
@@ -263,7 +263,7 @@ impl  EventDrivenSim  {
             } else{
                 // We are at max speed, what time will we be in the braking zone
                 // Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
-                Some(-(rel_position - rel_position_braking)/rel_speed)
+                Some(-(rel_position - rel_position_future)/rel_speed)
             }
 
 
@@ -367,7 +367,9 @@ impl  Simulation  for EventDrivenSim  {
 
             // Vehicle obstacles:
             if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
-                println!("Vehicle: {}, Next Vehicle: {}", &to_json(vehicle).unwrap(), &to_json(vehicle_obstacle).unwrap());
+                if self.verbose {
+                    println!("Vehicle: {}\nhas next Vehicle: {}\n", &to_json(vehicle).unwrap(), &to_json(vehicle_obstacle).unwrap());
+                }
 
                 // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_obstacle();
