@@ -209,35 +209,34 @@ impl  EventDrivenSim  {
         // Obstacle must not be decelerating as not handled by this fn
         assert!(DECCELERATION_VALUE != obstacle.get_acceleration());
 
+        // TODO: Check formulation and equations below
+        //
         // Formulation of time to reach buffer zone:
         // -----------------------------------------
         // x1 = x1_0 + u1 * t + 1/2 * a1 * t^2
         // x2 = x2_0 + u2 * t + 1/2 * a2 * t^2
         //
         // What time is:
-        // x1 - x2 = braking zone ?
+        // x1 - x2 = future_rel_position (braking or exit)
         // 
-        // x1 - x2 = dx (always less than 0)
+        // x1 - x2 = dx (should always be less than 0)
         // u1 - u2 = du
         // a1 - a2 = da
         //
-        // ---
-        // if da < 0
+        // When considering a braking event, consider 1. da < 0, 2. da = 0 and 3. da > 0:
+        //
+        // 1. da < 0
         // No reaction is needed as cannot currently decelerate more than single -ve value
         //
-        // ---
-        // if da = 0
+        // 2. da = 0
         // t = -(dx + b)/du
         //
+        // 3. da > 0
+        // 1/2 * da * t**2 + du * t + rel_position = rel_position_braking
+        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - rel_position_future) / da
         // ---
-        // if da > 0 (car has relative acc towards vehicle)
-        // 1/2 * (da) * t^2 + (du) * t + rel_position = rel_position_braking
-        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - rel_position_braking) / da
-        // ---
-
-        // TODO: Check the equations below
         
-        // Get the relative position for required braking zone
+        // Get the future relative position for required braking zone (reaction_event = true) or exit (reaction event = false)
         let rel_position_braking: f32 = self.get_braking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, reaction_event).unwrap();
         let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - rel_position_braking);
         if rel_accel < 0.0 {
