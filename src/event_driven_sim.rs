@@ -335,6 +335,9 @@ impl  Simulation  for EventDrivenSim  {
                 events.push(Event(curr_time + t_delta, EventType::VehicleExit(i)));
             }
 
+            // Bool for no obstacles
+            let mut no_obs = true;
+
             // Loop over pedestrians in state to get active pedestrians
             // Pedestrian obstacles:
             if let Some(ped_obstacle) = vehicle.next_pedestrian(
@@ -360,6 +363,7 @@ impl  Simulation  for EventDrivenSim  {
                         }
                     }
                 }
+                no_obs = false;
             }
 
             // Vehicle obstacles:
@@ -375,20 +379,18 @@ impl  Simulation  for EventDrivenSim  {
                 // If obstacle decelerating, then no way of decelerating at greater rate than
                 // obstacle, so when is emergency?
                 if obstacle.get_acceleration() == DECCELERATION_VALUE {
-                    let delta_x = -vehicle.get_buffer_zone() - (
-                        vehicle.get_position(&self.road, &vehicle.get_direction())
-                        - obstacle.get_position(&self.road, &vehicle.get_direction())
-                    );
-                    // Aside from rounding, must be behind obstacle 
-                    assert!(delta_x >= -0.01);
-                    // Time vehicle catches up
-                    let delta_t = delta_x / (vehicle.get_speed() - obstacle.get_speed());
+                    // Get relative position
+                    let rel_position = vehicle.get_position(&self.road, &vehicle.get_direction()) - obstacle.get_position(&self.road, &vehicle.get_direction());
+                    // Aside from rounding, vehicle must be behind obstacle 
+                    assert!(rel_position <= 0.00);
+                    // Time vehicle catches up with obstacle
+                    let t_catch = -rel_position / (vehicle.get_speed() - obstacle.get_speed());
                     // Time vehicle stops
-                    let veh_stop = -vehicle.get_speed() / DECCELERATION_VALUE;
+                    let t_stop = -vehicle.get_speed() / DECCELERATION_VALUE;
                     
-                    // delta_t must be positive (vehicle faster than object) AND must catch up before stops
-                    if veh_stop > delta_t && delta_t >= 0.0 {
-                        events.push(Event(curr_time + TimeDelta::from(delta_t), EventType::EmergencyStop(i)));
+                    // if t_catch is positive (vehicle faster than object) AND catches up before stops, then emergency
+                    if t_stop > t_catch && t_catch >= 0.0 {
+                        events.push(Event(curr_time + TimeDelta::from(t_catch), EventType::EmergencyStop(i)));
                     }
                 }
                 else {
@@ -413,7 +415,15 @@ impl  Simulation  for EventDrivenSim  {
                         }
                     }
                 }
+                // An obstacle was found
+                no_obs = false;
             }
+        
+            // TODO: If no obstacles and veh is stopped, start again
+            // if vehicle.get_speed() == 0.0 && no_obs {
+            //     events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+            // }
+
         }
 
         // Print if verbose
@@ -445,6 +455,12 @@ impl  Simulation  for EventDrivenSim  {
         match event {
             VehicleArrival => {
                 self.new_vehicle();
+                // EventResult::NewVehicle(self.new_vehicle())
+            }
+            VehicleAccelerate(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
+                vehicle.action(Action::Accelerate);
+                // self.new_vehicle();
                 // EventResult::NewVehicle(self.new_vehicle())
             }
             VehicleExit(idx) => {

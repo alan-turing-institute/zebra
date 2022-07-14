@@ -9,6 +9,7 @@ use std::cmp::{Ord, Eq, Ordering};
 pub enum EventType {
 
     VehicleArrival,
+    VehicleAccelerate(usize),
     VehicleExit(usize),
     SpeedLimitReached(usize),
     ZeroSpeedReached(usize),

@@ -169,6 +169,7 @@ impl Vehicle for Car {
         // Update the vehicle's position.
         // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
         // Round to 2 dec places to avoid incorrect small +ves and -ves
+        // TODO: proper fix required
         self.position = ((
             self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
         )*100.0).round()/100.0;
@@ -178,7 +179,9 @@ impl Vehicle for Car {
         // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
 
         // Update the vehicle's speed.
+        // self.speed = self.speed + self.acceleration * seconds;
         // Round to 2 dec places to avoid incorrect small +ves and -ves
+        // TODO: proper fix required
         self.speed = ((self.speed + self.acceleration * seconds) * 100.0).round()/100.0;
 
         // println!{"{}", "After:"}
