@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "zebra"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+notebook = "^6.4.12"
+numpy = "^1.23.1"
+scipy = "^1.8.1"
+matplotlib = "^3.5.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
