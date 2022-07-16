@@ -26,6 +26,13 @@ pub enum Action {
     StaticSpeed
 }
 
+// TODO: impl from trait for action to HazardZone
+pub enum HazardZone {
+    Ignore, // Action::Accelerate
+    Brake, // Action::Decelerate
+    Danger, // Action::??
+}
+
 
 pub trait Vehicle : Obstacle {
     fn get_id(&self) -> ID;
@@ -44,6 +51,7 @@ pub trait Vehicle : Obstacle {
     fn relative_position(&self, obstacle: &dyn Obstacle, road: &Road) -> f32;
     fn relative_veh_position(&self, vehicle: &dyn Vehicle) -> f32;
     fn relative_acceleration(&self, obstacle: &dyn Obstacle) -> f32;
+    fn hazard_zone(&self, obstacle: &dyn Obstacle, road: &Road,) -> HazardZone;
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>>;
 }
 
@@ -286,7 +294,38 @@ impl Vehicle for Car {
         // If this vehicle is in front of all the others, return None.
         Option::None
     }
+    
+    fn hazard_zone(&self, obstacle: &dyn Obstacle, road: &Road,) -> HazardZone {
+        let relative_pos = self.relative_position(obstacle, road);
+        if relative_pos > -self.get_buffer_zone() {
+            return HazardZone::Danger;
+        }
+
+        let relative_speed = self.relative_speed(obstacle);
+
+        // If obstacle is moving away, then ignore
+        if relative_speed < 0.0 {
+            return HazardZone::Ignore;
+        }
+
+        // TODO: currently only handles obstacle not accelerating or decelerating
+        let braking_distance = relative_speed * relative_speed / (2.0 * DECCELERATION_VALUE) - self.buffer_zone;
+
+        // TODO: Buffer zones only for now, no lengths
+
+        if relative_pos > braking_distance {
+            return HazardZone::Danger;
+        }
+        
+        let braking_buffer = -10.;        
+        if relative_pos > braking_distance - braking_buffer {
+            return HazardZone::Brake;
+        }
+
+        HazardZone::Ignore
+    }
 }
+
 
 impl Serialize for Car {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
