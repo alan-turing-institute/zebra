@@ -199,81 +199,47 @@ impl  EventDrivenSim  {
         reaction_event: bool
     ) -> Option<f32> {
 
+
+        if obstacle.get_acceleration() == DECCELERATION_VALUE {
+            // TODO: allow temp changes to obstacle
+            let x2 = obstacle.get_position(&self.road, &vehicle.get_direction());
+            let u2 = obstacle.get_speed();
+            let a2 = obstacle.get_acceleration();
+            obstacle.set_position(x2 - (u2 * u2) / (2.0 * a2));
+            obstacle.set_speed(0.0);
+            obstacle.set_acceleration(0.0);
+        }
+
+
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+        let B = vehicle.get_buffer_zone();
 
         // Vehicle must be behind obstacle
         assert!(rel_position <= 0.0);
 
-        // Obstacle must not be decelerating as not handled by this fn
-        assert!(DECCELERATION_VALUE != obstacle.get_acceleration());
-
-        // TODO: Check formulation and equations below
-        //
-        // Formulation of time to reach buffer zone:
-        // -----------------------------------------
-        // x1 = x1_0 + u1 * t + 1/2 * a1 * t^2
-        // x2 = x2_0 + u2 * t + 1/2 * a2 * t^2
-        //
-        // What time is:
-        // x1 - x2 = future_rel_position (braking or exit)
-        // 
-        // x1 - x2 = dx (should always be less than 0)
-        // u1 - u2 = du
-        // a1 - a2 = da
-        //
-        // When considering a braking event, consider 1. da < 0, 2. da = 0 and 3. da > 0:
-        //
-        // 1. da < 0
-        // No reaction is needed as cannot currently decelerate more than single -ve value
-        //
-        // 2. da = 0
-        // t = -(dx + b)/du
-        //
-        // 3. da > 0
-        // 1/2 * da * t**2 + du * t + rel_position = rel_position_future
-        // t = (-du + sqrt(du**2 - 2 * da * (rel_position - rel_position_future))) / da
-        // ---
+        let gamma = 1. - rel_accel / DECCELERATION_VALUE;
         
-        // Get the future relative position for required braking zone (reaction_event = true) or exit (reaction event = false)
-        let rel_position_future: f32 = self.get_braking_pos_and_buffer::<dyn Obstacle>(vehicle, obstacle, reaction_event).unwrap();
-        let sqrt_value = rel_speed*rel_speed - 2.0 * rel_accel * (rel_position - rel_position_future);
-        if rel_accel < 0.0 {
-            // Obstacle is not a reaction event and is accelerating away
-            if !reaction_event {
-                if  sqrt_value >= 0.0 {
-                    // We want the -ve root as this will be the earliest contact point before passing "back"
-                    let solution = (-rel_speed - f32::sqrt(sqrt_value)) / rel_accel;
-                    Some(solution)
-                }
-                else {
-                    None
-                }
-            }
-            // If reaction_event, then no action is possible to decelerate further, so no need to calculate
-            else {
-                None
-            }
-
-        } else if rel_accel == 0.0 {
-            // Obstacle is receding and we're not relatively accelerating.
-            if rel_speed <= 0.0 {
-                None
-            } else{
-                // We are at max speed, what time will we be in the braking zone
-                // Some((rel_speed - f32::sqrt(rel_speed*rel_speed - 2.0 * DECCELERATION_VALUE * (rel_position - buffer_zone))) / DECCELERATION_VALUE)
-                Some(-(rel_position - rel_position_future)/rel_speed)
-            }
-
-
-        } else if rel_accel > 0.0 {
-            // We are accelerating, what time will we be in the braking zone
-            // Some((rel_speed + f32::sqrt(rel_speed + 2.0 * rel_accel * (rel_position - buffer_zone))) / rel_accel)
-            Some((-rel_speed + f32::sqrt(sqrt_value)) / rel_accel)
-
+        // Case 1: rel_accel = 0
+        if rel_accel == 0. {
+            let t_prime = (1. / rel_speed) * (-B + (rel_speed*rel_speed)/(2. * DECCELERATION_VALUE) - rel_position);
+            return Some(t_prime);
+        }
+        // Case 2: rel_accel != 0
+        else if rel_accel != 0.0 {
+            let t_prime = (
+                -rel_speed * gamma
+                + f32::sqrt(
+                    (rel_speed * gamma)*(rel_speed * gamma)
+                    - 2. * rel_accel * gamma * (
+                        rel_position - (rel_speed * rel_speed)/(2. * DECCELERATION_VALUE) + B
+                    )
+                )
+            ) / (rel_accel * gamma);
+            return Some(t_prime);
+            
         } else {unreachable!()}
-
     }
 }
 
@@ -420,6 +386,13 @@ impl  Simulation  for EventDrivenSim  {
                 no_obs = false;
             }
         
+            // Ignore, brake, danger
+            // inputs:
+            //   - vehicle: (x, u)
+            //   - next_obstacle: (x, u): keep from above check over vehs and peds
+            //   - 
+
+
             // TODO: If no obstacles and veh is stopped, start again
             // if vehicle.get_speed() == 0.0 && no_obs {
             //     events.push(Event(curr_time, EventType::VehicleAccelerate(i)));

@@ -17,6 +17,12 @@ pub trait Obstacle : AsObstacle {
 
     fn get_acceleration(&self) -> f32;
 
+    // fn set_position(&self, road: &Road, direction: &Direction, pos: f32) -> f32;
+
+    // fn set_speed(&self, speed: f32) -> f32;
+
+    // fn set_acceleration(&self, acc: f32);
+
     fn is_active(&self, time: Time) -> bool;
 }
 
