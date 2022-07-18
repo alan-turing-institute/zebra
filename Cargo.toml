@@ -13,7 +13,7 @@ default = ["console_error_panic_hook"]
 
 
 [dependencies]
-clap = { version = "~3.2", features=["derive"] }
+clap = { version = "~3.2", features=["derive", "cargo"] }
 lazy_static = "~1"
 rand="0.8.5"
 rand_distr = "0.4.3"

@@ -2,7 +2,7 @@
 mod utils;
 mod time;
 mod road;
-mod state;
+pub mod state;
 mod pedestrian;
 mod vehicle;
 mod obstacle;
@@ -41,3 +41,12 @@ extern {
 pub fn greet() {
     alert("Hello, wasm-zebra!");
 }
+
+use std::io;                                                                                                                                                              
+fn raw_input() -> () {                                                                                                                                                    
+    let mut buffer = String::new();                                                                                                                                       
+    io::stdin()                                                                                                                                                           
+        .read_line(&mut buffer)                                                                                                                                           
+        .map_err(|err| println!("{:?}", err))                                                                                                                             
+        .ok();                                                                                                                                                            
+} 

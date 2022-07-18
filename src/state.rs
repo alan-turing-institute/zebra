@@ -1,4 +1,4 @@
-use crate::Time;
+use crate::{Time, raw_input};
 use crate::time::TimeDelta;
 use crate::vehicle::{Vehicle, Car, Action};
 use std::collections::VecDeque;
@@ -6,11 +6,11 @@ use crate::road::{Direction, Crossing};
 use crate::pedestrian::Pedestrian;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
 use serde_json::to_string as to_json;
-use std::collections;
-use std::collections::vec_deque::IterMut;
+use std::rc::Rc;
 
-pub trait State {
+pub trait State  {
 
+    // Update the state to reflect passage of time.
     fn update(&mut self, delta_t: TimeDelta);
 
     // fn get_vehicles(&self) -> &[dyn Vehicle];
@@ -25,25 +25,17 @@ pub trait State {
     fn get_vehicle(&self, idx: usize) -> &dyn Vehicle;
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle;
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian;
-    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_>;
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian;
 
-    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize;
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_>;
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian) -> usize;
+    fn pop_pedestrian(&mut self, idx: usize);
+    // fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian;
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize;
-    fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
-    // MOVED TO THE SIMULATION TRAIT:
-    // // get time interval until next event
-    // fn time_to_next_event(&self, ped_arrival_times: &[Time], veh_arrival_times: &[Time]) -> TimeDelta;
-
-    // // roll state forward by time interval
-    // fn roll_forward_by(&mut self, time_delta: TimeDelta);
-
-    // // update state
-    // fn instantaneous_update(&mut self);
-
+    fn pop_vehicle(&mut self, idx: usize);
+    // fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle>;
 }
 
-impl Serialize for dyn State {
+impl  Serialize for dyn State  {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -58,14 +50,14 @@ impl Serialize for dyn State {
 }
 
 
-pub struct SimulatorState<'a> {
+pub struct SimulatorState {
 
     vehicles: VecDeque<Box<dyn Vehicle>>,
-    pedestrians: VecDeque<Pedestrian<'a>>,
+    pedestrians: VecDeque<Pedestrian>,
     timestamp: Time
 }
 
-impl Serialize for SimulatorState <'_> {
+impl Serialize for SimulatorState {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -79,24 +71,24 @@ impl Serialize for SimulatorState <'_> {
     }
 }
 
-impl<'a> SimulatorState<'a> {
+impl SimulatorState {
 
     // Constructor for the initial state at time 0.
-    pub fn new() -> SimulatorState<'a> {
+    pub fn new() -> SimulatorState {
 
         SimulatorState {vehicles: VecDeque::new(), pedestrians: VecDeque::new(), timestamp: 0}
     }
 
     // Construct a state with arbitrary content
     pub fn dummy(vehicles: VecDeque<Box<dyn Vehicle>>,
-        pedestrians: VecDeque<Pedestrian<'a>>,
-        timestamp: Time) -> SimulatorState<'a> {
+        pedestrians: VecDeque<Pedestrian>,
+        timestamp: Time) -> SimulatorState {
 
         SimulatorState{vehicles, pedestrians, timestamp}
     }
 }
 
-impl<'a> State for SimulatorState<'a> {
+impl State  for SimulatorState {
 
     fn update(&mut self, delta_t: TimeDelta) {
         self.timestamp += delta_t;
@@ -112,42 +104,52 @@ impl<'a> State for SimulatorState<'a> {
         &self.vehicles
     }
 
-
     // get the list of pedestrians
     fn get_pedestrians(&self) ->  &VecDeque<Pedestrian> {
         &self.pedestrians
     }
 
     fn get_vehicle(&self, idx: usize) -> &dyn Vehicle {
-        todo!()
+        &*self.get_vehicles()[idx]
     }
 
     fn get_mut_vehicle(&mut self, idx: usize) -> &mut dyn Vehicle {
-        todo!()
+        &mut *self.vehicles[idx]
     }
 
     fn get_pedestrian(&self, idx: usize) -> &Pedestrian {
-        todo!()
+        &self.get_pedestrians()[idx]
     }
 
-    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian<'_> {
-        todo!()
+    fn get_mut_pedestrian(&mut self, idx: usize) -> &mut Pedestrian {
+        &mut self.pedestrians[idx]
     }
 
-    fn push_pedestrian(&mut self, pedestrian: Pedestrian<'_>) -> usize {
-        todo!()
+    fn push_pedestrian(&mut self, pedestrian: Pedestrian) -> usize {
+        self.pedestrians.push_back(pedestrian);
+        self.pedestrians.len() - 1
     }
 
-    fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian<'_> {
-        todo!()
+    // fn pop_pedestrian(&mut self, idx: usize) -> Pedestrian {
+    fn pop_pedestrian(&mut self, idx: usize) {
+        // TODO: should this really be "pop" if it is taking a particular idx
+        // TODO: if it is taking particular idx this breaks order of vector
+        //       or will be very slow. What is intended?
+        self.pedestrians.remove(idx);
     }
 
     fn push_vehicle(&mut self, vehicle: Box<dyn Vehicle>) -> usize {
-        todo!()
+        self.vehicles.push_back(vehicle);
+        self.vehicles.len() - 1
     }
 
-    fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
-        todo!()
+    // fn pop_vehicle(&mut self, idx: usize) -> Box<dyn Vehicle> {
+    fn pop_vehicle(&mut self, idx: usize) {
+        // todo!()
+        // TODO: should this really be "pop" if it is taking a particular idx
+        // TODO: if it is taking particular idx this breaks order of vector
+        //       or will be very slow. What is intended?
+        self.vehicles.remove(idx);
     }
 
 
@@ -169,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simulator_state_serialize() {        
+    fn test_simulator_state_serialize() {
         // Make test state
         let mut test_state = SimulatorState::new();
 
@@ -178,18 +180,15 @@ mod tests {
         let car2 = Car::new(2, Direction::Down, 10.0,Action::Accelerate);
 
         // Make test crossing
-        let test_pelican = Crossing::pelican(0);
+        let test_pelican = Rc::new(Crossing::pelican(0));
 
         // Make test pedestrians
-        let ped1 = Pedestrian::new(1, &test_pelican, 0);
-        let ped2 = Pedestrian::new(2, &test_pelican, 20);
+        let ped1 = Pedestrian::new(1, Rc::clone(&test_pelican), 0);
+        let ped2 = Pedestrian::new(2, Rc::clone(&test_pelican), 20);
 
         // Make ped_vec and veh_vec
         let ped_vec: Vec<Pedestrian> = vec![ped1, ped2];
-        let veh_vec: Vec<Box<dyn Vehicle>> = vec![car1, car2]
-            .drain(..)
-            .map(|car| Box::<dyn Vehicle>::from(Box::new(car)))
-            .collect();
+        let veh_vec: Vec<Box<dyn Vehicle>> = vec![Box::new(car1), Box::new(car2)];
 
         // Assign ped_vec and veh_vec to state
         test_state.pedestrians = ped_vec.into();
