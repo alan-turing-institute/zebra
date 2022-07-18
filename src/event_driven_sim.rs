@@ -168,72 +168,101 @@ impl  EventDrivenSim  {
         }
     }
 
-    fn get_braking_pos_and_buffer<T:Obstacle + ?Sized>(
+    
+    fn time_to_exit_event<T:Obstacle + ?Sized>(
         &self, vehicle: &dyn Vehicle,
-        obstacle: &dyn Obstacle,
-        reaction_event: bool
+        obstacle: &dyn Obstacle
     ) -> Option<f32> {
-        let rel_speed = vehicle.relative_speed(obstacle);
-        let rel_position = vehicle.relative_position(obstacle, &self.get_road());
-
-        assert!(rel_position <= 0.0);
-
-        let rel_position_future: f32 = match reaction_event {
-            true => {
-                // Get the position of braking zone
-                let braking_dist = -(rel_speed * rel_speed)/(2. * (DECCELERATION_VALUE - obstacle.get_acceleration()));
-                -(braking_dist + vehicle.get_buffer_zone())
-            },
-            false => 0.0
-        };
-        // If behind braking zone
-        if rel_position - rel_position_future <= 0.0 {
-            return Some(rel_position_future);
-        }
-        // If inside braking zone
-        None
-    }
-    fn time_to_obstacle_event<T:Obstacle + ?Sized>(
-        &self, vehicle: &dyn Vehicle,
-        obstacle: &dyn Obstacle,
-        reaction_event: bool
-    ) -> Option<f32> {
-
-
-        if obstacle.get_acceleration() == DECCELERATION_VALUE {
-            // TODO: allow temp changes to obstacle
-            let x2 = obstacle.get_position(&self.road, &vehicle.get_direction());
-            let u2 = obstacle.get_speed();
-            let a2 = obstacle.get_acceleration();
-            obstacle.set_position(x2 - (u2 * u2) / (2.0 * a2));
-            obstacle.set_speed(0.0);
-            obstacle.set_acceleration(0.0);
-        }
-
-
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
         let rel_position = vehicle.relative_position(obstacle, &self.get_road());
-        let B = vehicle.get_buffer_zone();
+
+        assert!(rel_speed >= 0.0);
+
+        if rel_speed == 0.0 {
+            return None;
+        }
+        
+        if rel_accel == 0.0 {
+            return Some(-rel_position / rel_speed);
+        } else if rel_accel > 0.0 {
+            let t_delta = (
+                -rel_speed + f32::sqrt(rel_speed * rel_speed - 2.0 * rel_position * rel_accel)
+            )/rel_accel;
+
+            return Some(t_delta);
+        }
+        else {
+            if rel_speed * rel_speed > 2.0 * rel_position * rel_accel {
+                let t_delta = (
+                    -rel_speed - f32::sqrt(rel_speed * rel_speed - 2.0 * rel_position * rel_accel)
+                )/rel_accel;
+                return Some(t_delta);
+            }
+            return None;
+        }
+    }
+
+    fn time_to_obstacle_event<T:Obstacle + ?Sized>(
+        &self, vehicle: &dyn Vehicle,
+        obstacle: &dyn Obstacle,
+        switch_to_accel: bool
+    ) -> Option<f32> {
+
+
+        let mut rel_accel = vehicle.relative_acceleration(obstacle);
+        let mut rel_speed = vehicle.relative_speed(obstacle);
+        let mut rel_position = vehicle.relative_position(obstacle, &self.get_road());
+        let buffer = vehicle.get_buffer_zone();
+
+        if obstacle.get_acceleration() == DECCELERATION_VALUE {
+            // Adjust relative values for future stopped obstacle
+            let x2 = obstacle.get_position(&self.road, &vehicle.get_direction());
+            let u2 = obstacle.get_speed();
+            let a2 = obstacle.get_acceleration();
+            rel_position = rel_position + x2 - (x2 - ((u2 * u2) / (2.0 * a2)));
+            rel_speed = rel_speed + u2;
+            rel_accel = rel_accel + a2;
+        }
+
+        if switch_to_accel {
+            println!("Switch to accel accel: {}, {}", rel_accel, vehicle.get_acceleration());
+            rel_accel = rel_accel - vehicle.get_acceleration() + ACCELERATION_VALUE;
+        }
 
         // Vehicle must be behind obstacle
         assert!(rel_position <= 0.0);
+
+        // Debugging
+        // if vehicle.get_speed() == 0.0 && vehicle.get_acceleration() <= 0.0  {
+        //     return None;
+        // }
+        if switch_to_accel {
+            println!("Switch to accel accel: {}", rel_accel);
+            // println!("Vehicle: {}", &to_json(vehicle));
+        }
 
         let gamma = 1. - rel_accel / DECCELERATION_VALUE;
         
         // Case 1: rel_accel = 0
         if rel_accel == 0. {
-            let t_prime = (1. / rel_speed) * (-B + (rel_speed*rel_speed)/(2. * DECCELERATION_VALUE) - rel_position);
+            // If no relative speed
+            if rel_speed <= 0.0 {
+                return None;
+            }
+            let t_prime = (1. / rel_speed) * (-buffer + (rel_speed*rel_speed)/(2. * DECCELERATION_VALUE) - rel_position);
             return Some(t_prime);
         }
         // Case 2: rel_accel != 0
         else if rel_accel != 0.0 {
+            // TODO: check from here
+            println!("{:?}", rel_accel);
             let t_prime = (
                 -rel_speed * gamma
                 + f32::sqrt(
                     (rel_speed * gamma)*(rel_speed * gamma)
                     - 2. * rel_accel * gamma * (
-                        rel_position - (rel_speed * rel_speed)/(2. * DECCELERATION_VALUE) + B
+                        rel_position - (rel_speed * rel_speed)/(2. * DECCELERATION_VALUE) + buffer
                     )
                 )
             ) / (rel_accel * gamma);
@@ -287,7 +316,7 @@ impl  Simulation  for EventDrivenSim  {
                 let speed_delta = vehicle::MAX_SPEED - vehicle.get_speed();
                 let t_delta = TimeDelta::from(speed_delta / accel);
                 events.push(Event(curr_time + t_delta, EventType::SpeedLimitReached(i)));
-            } else if accel < 0.0 {
+            } else if accel < 0.0 && vehicle.get_speed() > 0.0 {
                 let t_delta = TimeDelta::from(vehicle.get_speed() / -vehicle.get_acceleration());
                 events.push(Event(curr_time + t_delta, EventType::ZeroSpeedReached(i)));
             }
@@ -295,40 +324,37 @@ impl  Simulation  for EventDrivenSim  {
             // Logic to check for obstacle-related events.
             //
             // Exit time from treating as obstacle
-            if let Some(exit_time) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, self.road.get_exit(), false) {
+            if let Some(exit_time) = self.time_to_exit_event::<dyn Obstacle>(&**vehicle, self.road.get_exit()) {
                 let t_delta = TimeDelta::from(exit_time);
                 events.push(Event(curr_time + t_delta, EventType::VehicleExit(i)));
             }
 
             // Bool for no obstacles
-            let mut no_obs = true;
+            let mut min_react_after_switch: Option<f32> = None;
 
             // Loop over pedestrians in state to get active pedestrians
             // Pedestrian obstacles:
-            if let Some(ped_obstacle) = vehicle.next_pedestrian(
-                &self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp()
-                ) {
-                // Determine whether "can stop in time"
-                let braking_pos_and_buffer: Option<f32> = self.get_braking_pos_and_buffer::<dyn Obstacle>(&**vehicle, ped_obstacle, true);
-                match braking_pos_and_buffer {
-                    // If behind braking zone, time at which braking must be applied
-                    Some(_) => {
-                        match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, ped_obstacle, true) {
-                            Some(t_delta) => {
-                                events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
-                            },
-                            None => ()
-                        };
-                    },
-                    // If ahead of braking zone
-                    None => {
+            if let Some(obstacle) = vehicle.next_pedestrian(&self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp())
+            {
+                // Get time action needed
+                if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false) {
+                    if t_delta >= 0.0 {
+                        events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
+                    }
+                    else {
                         // If speed is non-zero, must emergency stop
                         if vehicle.get_speed() != 0.0 {
                             events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
                     }
                 }
-                no_obs = false;
+                else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
+                    // Debugging
+                    println!("Ped t_delta react after accel switch: {:?}", t_delta);
+                    if min_react_after_switch == None {
+                        min_react_after_switch = Some(t_delta);
+                    }
+                }
             }
 
             // Vehicle obstacles:
@@ -340,69 +366,51 @@ impl  Simulation  for EventDrivenSim  {
                 // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_obstacle();
 
-                // TODO: consideration for obstacle with negative acceleration required
-                // Should this just be handled as returning a "time to buffer" with emergency stop
-
-                // If obstacle decelerating, then no way of decelerating at greater rate than
-                // obstacle, so when is emergency?
-                if obstacle.get_acceleration() == DECCELERATION_VALUE {
-                    // Get relative position
-                    let rel_position = vehicle.get_position(&self.road, &vehicle.get_direction()) - obstacle.get_position(&self.road, &vehicle.get_direction());
-                    // Aside from rounding, vehicle must be behind obstacle 
-                    assert!(rel_position <= 0.00);
-                    // Time vehicle catches up with obstacle
-                    let t_catch = -rel_position / (vehicle.get_speed() - obstacle.get_speed());
-                    // Time vehicle stops
-                    let t_stop = -vehicle.get_speed() / DECCELERATION_VALUE;
-                    
-                    // if t_catch is positive (vehicle faster than object) AND catches up before stops, then emergency
-                    if t_stop > t_catch && t_catch >= 0.0 {
-                        events.push(Event(curr_time + TimeDelta::from(t_catch), EventType::EmergencyStop(i)));
+        
+                if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false) {
+                    if t_delta >= 0.0 {
+                        events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
                     }
-                }
-                else {
-                    // Get where braking zone occurs
-                    let braking_pos_and_buffer: Option<f32> = self.get_braking_pos_and_buffer::<dyn Obstacle>(&**vehicle, obstacle, true);
-                    match braking_pos_and_buffer {
-                        // If behind braking zone, time at which braking must be applied
-                        Some(_) => {
-                            match self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
-                                Some(t_delta) => {
-                                    events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
-                                },
-                                None => ()
-                            };
-                        },
-                        // If ahead of braking zone
-                        None => {
-                            // If speed is non-zero, must emergency stop
-                            if vehicle.get_speed() != 0.0 {
-                                events.push(Event(curr_time, EventType::EmergencyStop(i)));
-                            }
+                    else {
+                        // If speed is non-zero, must emergency stop
+                        if vehicle.get_speed() != 0.0 {
+                            events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
                     }
                 }
-                // An obstacle was found
-                no_obs = false;
+                else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
+                    if min_react_after_switch == None {
+                        min_react_after_switch = Some(t_delta);
+                    } else {
+                        min_react_after_switch = Some(f32::min(min_react_after_switch.unwrap(), t_delta));
+                    }
+                }
             }
-        
-            // Ignore, brake, danger
-            // inputs:
-            //   - vehicle: (x, u)
-            //   - next_obstacle: (x, u): keep from above check over vehs and peds
-            //   - 
 
+            // Debug
+            println!("{:?}", min_react_after_switch);
 
-            // TODO: If no obstacles and veh is stopped, start again
-            // if vehicle.get_speed() == 0.0 && no_obs {
-            //     events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
-            // }
+            // If switching to accelerate causes no immediate reaction AND not top speed, accelerate
+            if vehicle.get_speed() < MAX_SPEED && vehicle.get_acceleration() != ACCELERATION_VALUE {
+                if min_react_after_switch == None {
+                    events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+                }
+                else {
+                    let t_delta = min_react_after_switch.unwrap();
+                    if t_delta > 0.0 {
+                        events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+                    }
+                }
+            }
 
         }
 
         // Print if verbose
         if self.verbose {
+            // Sort events
+            events.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.0, &y.0).unwrap());
             for (i, event) in events.iter().enumerate() {
+            // for (i, event) in  {
                 println!("Event {}: {:?}", i, event);
             }
         }
