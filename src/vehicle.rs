@@ -181,8 +181,9 @@ impl Vehicle for Car {
         // Update the vehicle's speed.
         // self.speed = self.speed + self.acceleration * seconds;
         // Round to 2 dec places to avoid incorrect small +ves and -ves
-        // TODO: proper fix required
-        self.speed = ((self.speed + self.acceleration * seconds) * 100.0).round()/100.0;
+        // Ensure speed is always ge than 0.0 with max
+        // TODO: proper fix required, consider floor of t'
+        self.speed = f32::max(((self.speed + self.acceleration * seconds) * 100.0).round()/100.0, 0.0);
 
         // println!{"{}", "After:"}
         // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
