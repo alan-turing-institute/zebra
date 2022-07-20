@@ -215,6 +215,11 @@ impl  EventDrivenSim  {
         let mut rel_position = vehicle.relative_position(obstacle, &self.get_road());
         let buffer = vehicle.get_buffer_zone();
 
+        // If in standard react mode, and vehicle already decelerating, no time is returned
+        if !switch_to_accel && vehicle.get_acceleration() == DECCELERATION_VALUE {
+            return None;
+        }
+
         if obstacle.get_acceleration() == DECCELERATION_VALUE {
             // Adjust relative values for future stopped obstacle
             let x2 = obstacle.get_position(&self.road, &vehicle.get_direction());
@@ -225,23 +230,15 @@ impl  EventDrivenSim  {
             rel_accel = rel_accel + a2;
         }
 
+        // If checking the time if switched, adjust rel_accel
         if switch_to_accel {
-            println!("Switch to accel accel: {}, {}", rel_accel, vehicle.get_acceleration());
             rel_accel = rel_accel - vehicle.get_acceleration() + ACCELERATION_VALUE;
         }
 
         // Vehicle must be behind obstacle
         assert!(rel_position <= 0.0);
 
-        // Debugging
-        // if vehicle.get_speed() == 0.0 && vehicle.get_acceleration() <= 0.0  {
-        //     return None;
-        // }
-        if switch_to_accel {
-            println!("Switch to accel accel: {}", rel_accel);
-            // println!("Vehicle: {}", &to_json(vehicle));
-        }
-
+        // Gamma value for convenience
         let gamma = 1. - rel_accel / DECCELERATION_VALUE;
         
         // Case 1: rel_accel = 0
@@ -255,8 +252,6 @@ impl  EventDrivenSim  {
         }
         // Case 2: rel_accel != 0
         else if rel_accel != 0.0 {
-            // TODO: check from here
-            println!("{:?}", rel_accel);
             let t_prime = (
                 -rel_speed * gamma
                 + f32::sqrt(
@@ -344,13 +339,16 @@ impl  Simulation  for EventDrivenSim  {
                     else {
                         // If speed is non-zero, must emergency stop
                         if vehicle.get_speed() != 0.0 {
-                            events.push(Event(curr_time, EventType::EmergencyStop(i)));
+                            // Remove emergency stop for pedestrian as should never occur
+                            // events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
                     }
                 }
                 else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
                     // Debugging
-                    println!("Ped t_delta react after accel switch: {:?}", t_delta);
+                    if self.verbose {
+                        println!("Veh {} ped t_delta react after accel switch: {:?}", i, t_delta);
+                    }
                     if min_react_after_switch == None {
                         min_react_after_switch = Some(t_delta);
                     }
@@ -359,6 +357,10 @@ impl  Simulation  for EventDrivenSim  {
 
             // Vehicle obstacles:
             if let Some(ref vehicle_obstacle) = vehicle.next_vehicle(curr_vehicles) {
+                // Prevent vehicles from overtaking as shouldn't happen
+                assert!(vehicle_obstacle.get_position(&self.road, &vehicle_obstacle.get_direction()) > vehicle.get_position(&self.road, &vehicle.get_direction()));
+                assert!(vehicle_obstacle.get_id() < vehicle.get_id());
+
                 if self.verbose {
                     println!("Vehicle: {}\nhas next Vehicle: {}\n", &to_json(vehicle).unwrap(), &to_json(vehicle_obstacle).unwrap());
                 }
@@ -388,16 +390,21 @@ impl  Simulation  for EventDrivenSim  {
             }
 
             // Debug
-            println!("{:?}", min_react_after_switch);
+            if self.verbose {
+                println!("Min react time for vehicle {} after switch: {:?}", i, min_react_after_switch);
+            }
 
             // If switching to accelerate causes no immediate reaction AND not top speed, accelerate
             if vehicle.get_speed() < MAX_SPEED && vehicle.get_acceleration() != ACCELERATION_VALUE {
                 if min_react_after_switch == None {
-                    events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+                    // TODO: consider whether we can allow vehicle accelerate if None is present for time
+                    // Want to capture when no obstacle is ahead, which is different.
+                    // Removed for now.
+                    // events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                 }
                 else {
                     let t_delta = min_react_after_switch.unwrap();
-                    if t_delta > 0.0 {
+                    if t_delta > 0.01 {
                         events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                     }
                 }
@@ -558,7 +565,7 @@ impl  Simulation  for EventDrivenSim  {
         let mut t: Time = 0;
         while t < self.end_time {
             if self.verbose {
-                raw_input();
+                // raw_input();
             }
 
             let next_event = self.next_event();
