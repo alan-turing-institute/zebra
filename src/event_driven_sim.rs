@@ -334,6 +334,7 @@ impl  Simulation  for EventDrivenSim  {
                 // Get time action needed
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false) {
                     if t_delta >= 0.0 {
+                        // TODO: consider rounding issues in TimeDelta conversion
                         events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
@@ -371,12 +372,13 @@ impl  Simulation  for EventDrivenSim  {
         
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false) {
                     if t_delta >= 0.0 {
+                        // TODO: consider rounding issues in TimeDelta conversion
                         events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
                         // If speed is non-zero, must emergency stop
                         if vehicle.get_speed() != 0.0 {
-                            events.push(Event(curr_time, EventType::EmergencyStop(i)));
+                            // events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
                     }
                 }
@@ -404,6 +406,7 @@ impl  Simulation  for EventDrivenSim  {
                 }
                 else {
                     let t_delta = min_react_after_switch.unwrap();
+                    // Arbitrary time larger to ensure no looping between stop/start
                     if t_delta > 0.01 {
                         events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                     }
@@ -458,11 +461,13 @@ impl  Simulation  for EventDrivenSim  {
             }
             SpeedLimitReached(idx) => {
                 let vehicle = self.state.get_mut_vehicle(idx);
+                // vehicle.set_speed(MAX_SPEED);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
             }
             ZeroSpeedReached(idx) => {
                 let vehicle = self.state.get_mut_vehicle(idx);
+                // vehicle.set_speed(0.0);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
             }
@@ -592,7 +597,7 @@ impl  Simulation  for EventDrivenSim  {
 #[cfg(test)]
 mod tests {
     use core::time;
-    use std::collections::VecDeque;
+    use std::{collections::VecDeque, f32::EPSILON};
     use crate::vehicle::{DECCELERATION_VALUE, MAX_SPEED};
     use super::*;
 
@@ -694,6 +699,24 @@ mod tests {
 
         let actual= sim.next_event();
         assert_eq!(actual.0, timestamp + TimeDelta::from((-1.0) * (speed / DECCELERATION_VALUE)));
+    }
+
+    #[test]
+    fn test_case1_reaction_to_obstacle() {
+        let mut v1 = Car::new(0, Direction::Up, 14., Action::StaticSpeed);
+        let mut v2 = Car::new(1, Direction::Up, 0., Action::StaticSpeed);
+        v1.set_position(0.);
+        v2.set_position(100.);
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(v1));
+        vehicles.push_back(Box::new(v2));
+        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
+        let sim = dummy_sim(state);
+        let mv1 = sim.state.get_vehicle(0);
+        let mv2 = sim.state.get_vehicle(1);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        assert!(f32::abs(t_p.unwrap() - 5.321429) < f32::EPSILON);
+
     }
 
     #[test]
