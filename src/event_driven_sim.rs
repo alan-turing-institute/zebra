@@ -600,6 +600,7 @@ mod tests {
     use std::{collections::VecDeque, f32::EPSILON};
     use crate::vehicle::{DECCELERATION_VALUE, MAX_SPEED};
     use super::*;
+    const MY_EPSILON: f32 = 0.000001;
 
     fn dummy_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
@@ -707,18 +708,120 @@ mod tests {
         let mut v2 = Car::new(1, Direction::Up, 0., Action::StaticSpeed);
         v1.set_position(0.);
         v2.set_position(100.);
+
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
         vehicles.push_back(Box::new(v2));
+        
         let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
         let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
-        assert!(f32::abs(t_p.unwrap() - 5.321429) < f32::EPSILON);
+        assert!(f32::abs(t_p.unwrap() - 5.321429) < MY_EPSILON);
 
     }
+    #[test]
+    fn test_case1b_reaction_to_obstacle() {
+        let mut v1 = Car::new(0, Direction::Up, 14., Action::StaticSpeed);
+        let mut v2 = Car::new(1, Direction::Up, 10., Action::StaticSpeed);
+        v1.set_position(80.);
+        v2.set_position(100.);
 
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(v1));
+        vehicles.push_back(Box::new(v2));
+
+        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
+        let sim = dummy_sim(state);
+        let mv1 = sim.state.get_vehicle(0);
+        let mv2 = sim.state.get_vehicle(1);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        assert!(f32::abs(t_p.unwrap() - 4.25) < MY_EPSILON);
+
+    }
+    #[test]
+    fn test_case2_reaction_to_obstacle() {
+        let mut v1 = Car::new(0, Direction::Up, 4., Action::Accelerate);
+        let mut v2 = Car::new(1, Direction::Up, 0., Action::StaticSpeed);
+        v1.set_position(0.);
+        v2.set_position(20.);
+
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(v1));
+        vehicles.push_back(Box::new(v2));
+
+        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
+        let sim = dummy_sim(state);
+        let mv1 = sim.state.get_vehicle(0);
+        let mv2 = sim.state.get_vehicle(1);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        
+        assert!(f32::abs(t_p.unwrap() - 1.539638691) < MY_EPSILON);
+
+    }
+    #[test]
+    fn test_case2b_reaction_to_obstacle() {
+        let mut v1 = Car::new(0, Direction::Up, 14., Action::Accelerate);
+        let mut v2 = Car::new(1, Direction::Up, 10., Action::StaticSpeed);
+        v1.set_position(80.);
+        v2.set_position(100.);
+
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(v1));
+        vehicles.push_back(Box::new(v2));
+
+        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
+        let sim = dummy_sim(state);
+        let mv1 = sim.state.get_vehicle(0);
+        let mv2 = sim.state.get_vehicle(1);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+
+        assert!(f32::abs(t_p.unwrap() - 1.539638691) < MY_EPSILON);
+
+    }
+    
+    #[test]
+    fn test_case3_reaction_to_obstacle() {
+        let mut v1 = Car::new(0, Direction::Up, 14., Action::Accelerate);
+        let mut v2 = Car::new(1, Direction::Up, 10., Action::Deccelerate);
+        v1.set_position(0.);
+        v2.set_position(25.);
+
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(v1));
+        vehicles.push_back(Box::new(v2));
+
+        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
+        let sim = dummy_sim(state);
+        let mv1 = sim.state.get_vehicle(0);
+        let mv2 = sim.state.get_vehicle(1);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+
+        assert!(f32::abs(t_p.unwrap() - 0.466481135) < MY_EPSILON);
+
+    }
+    #[test]
+    fn test_case3_danger_reaction_to_obstacle() {
+        let mut v1 = Car::new(0, Direction::Up, 14., Action::Accelerate);
+        let mut v2 = Car::new(1, Direction::Up, 10., Action::Deccelerate);
+        v1.set_position(0.);
+        v2.set_position(10.);
+
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        vehicles.push_back(Box::new(v1));
+        vehicles.push_back(Box::new(v2));
+
+        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), 0));
+        let sim = dummy_sim(state);
+        let mv1 = sim.state.get_vehicle(0);
+        let mv2 = sim.state.get_vehicle(1);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+
+        // Negative time as already will end up in danger zone
+        assert!(f32::abs(t_p.unwrap() - -0.124099041) < MY_EPSILON);
+
+    }
     #[test]
     fn test_vehicle_speed_limit_event() {
 
@@ -751,6 +854,7 @@ mod tests {
     }
     
     #[test]
+    #[ignore]
     fn test_integration_two_zebras() {
 
         let crossings = vec![
