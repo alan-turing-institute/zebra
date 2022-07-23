@@ -166,13 +166,15 @@ impl Vehicle for Car {
 
         let mut seconds: f32 = time_delta.into();
 
+        let rounding: f32 = 100.0;
+
         // Update the vehicle's position.
         // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
         // Round to 2 dec places to avoid incorrect small +ves and -ves
         // TODO: proper fix required
         self.position = ((
             self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
-        )*100.0).round()/100.0;
+        )*rounding).round()/rounding;
 
 
         // println!{"{}", "Before:"}
@@ -183,7 +185,7 @@ impl Vehicle for Car {
         // Round to 2 dec places to avoid incorrect small +ves and -ves
         // Ensure speed is always ge than 0.0 with max
         // TODO: proper fix required, consider floor of t'
-        self.speed = f32::max(((self.speed + self.acceleration * seconds) * 100.0).round()/100.0, 0.0);
+        self.speed = f32::min(f32::max(((self.speed + self.acceleration * seconds) * rounding).round()/rounding, 0.0), MAX_SPEED);
 
         // println!{"{}", "After:"}
         // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
