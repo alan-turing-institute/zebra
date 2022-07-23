@@ -65,7 +65,14 @@ impl  EventDrivenSim  {
 
         // Generate pedestrian & vehicle arrival times.
         let ped_arrival_times = arrival_times(&start_time, &end_time, ped_arrival_rate, &mut rng);
-        let veh_arrival_times = arrival_times(&start_time, &end_time, veh_arrival_rate, &mut rng);
+        let mut veh_arrival_times = arrival_times(&start_time, &end_time, veh_arrival_rate, &mut rng);
+
+        // Ensure big enough gap to brake: 13.41m/s to 0. is 3.35, so round to 3400ms
+        for i in 0..veh_arrival_times.len() { 
+            if i > 0 && veh_arrival_times[i] - veh_arrival_times[i] < 3400 {
+                veh_arrival_times[i] = veh_arrival_times[i-1] + 3400
+            }
+        }
 
         // Construct initial (empty) state at time 0.
         // let state = Box::new(SimulatorState::new());
@@ -126,6 +133,7 @@ impl  EventDrivenSim  {
         };
 
         let vehicle = Car::new(self.veh_counter, direction, MAX_SPEED, Action::StaticSpeed);
+        // let vehicle = Car::new(self.veh_counter, direction, 0.0, Action::Accelerate);
 
         // Increment veh counter
         self.veh_counter += 1;
@@ -182,7 +190,7 @@ impl  EventDrivenSim  {
         if rel_speed == 0.0 {
             return None;
         }
-        
+
         if rel_accel == 0.0 {
             return Some(-rel_position / rel_speed);
         } else if rel_accel > 0.0 {
@@ -195,7 +203,7 @@ impl  EventDrivenSim  {
         else {
             if rel_speed * rel_speed > 2.0 * rel_position * rel_accel {
                 let t_delta = (
-                    -rel_speed - f32::sqrt(rel_speed * rel_speed - 2.0 * rel_position * rel_accel)
+                    -rel_speed + f32::sqrt(rel_speed * rel_speed - 2.0 * rel_position * rel_accel)
                 )/rel_accel;
                 return Some(t_delta);
             }
@@ -206,7 +214,8 @@ impl  EventDrivenSim  {
     fn time_to_obstacle_event<T:Obstacle + ?Sized>(
         &self, vehicle: &dyn Vehicle,
         obstacle: &dyn Obstacle,
-        switch_to_accel: bool
+        veh_acc: bool,
+        obs_dec: bool
     ) -> Option<f32> {
 
 
@@ -216,23 +225,29 @@ impl  EventDrivenSim  {
         let buffer = vehicle.get_buffer_zone();
 
         // If in standard react mode, and vehicle already decelerating, no time is returned
-        if !switch_to_accel && vehicle.get_acceleration() == DECCELERATION_VALUE {
+        if !veh_acc && vehicle.get_acceleration() == DECCELERATION_VALUE {
             return None;
         }
 
-        if obstacle.get_acceleration() == DECCELERATION_VALUE {
+        // If obs decelerating or in obs_dec mode
+        if obstacle.get_acceleration() == DECCELERATION_VALUE || obs_dec {
             // Adjust relative values for future stopped obstacle
             let x2 = obstacle.get_position(&self.road, &vehicle.get_direction());
             let u2 = obstacle.get_speed();
-            let a2 = obstacle.get_acceleration();
+            let a2 = DECCELERATION_VALUE;
             rel_position = rel_position + x2 - (x2 - ((u2 * u2) / (2.0 * a2)));
             rel_speed = rel_speed + u2;
-            rel_accel = rel_accel + a2;
+            rel_accel = vehicle.get_acceleration();
         }
 
-        // If checking the time if switched, adjust rel_accel
-        if switch_to_accel {
+        // If switching to veh_acc mode
+        if veh_acc {
             rel_accel = rel_accel - vehicle.get_acceleration() + ACCELERATION_VALUE;
+        }
+
+        // If already ahead of buffer and testing veh_acc, do not acc
+        if rel_position > -buffer && veh_acc {
+            return Some(0.0);
         }
 
         // Vehicle must be behind obstacle
@@ -332,7 +347,7 @@ impl  Simulation  for EventDrivenSim  {
             if let Some(obstacle) = vehicle.next_pedestrian(&self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp())
             {
                 // Get time action needed
-                if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false) {
+                if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, false) {
                     if t_delta >= 0.0 {
                         // TODO: consider rounding issues in TimeDelta conversion
                         events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
@@ -345,7 +360,7 @@ impl  Simulation  for EventDrivenSim  {
                         }
                     }
                 }
-                else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
+                else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true, false) {
                     // Debugging
                     if self.verbose {
                         println!("Veh {} ped t_delta react after accel switch: {:?}", i, t_delta);
@@ -370,7 +385,7 @@ impl  Simulation  for EventDrivenSim  {
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_obstacle();
 
         
-                if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false) {
+                if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, true) {
                     if t_delta >= 0.0 {
                         // TODO: consider rounding issues in TimeDelta conversion
                         events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
@@ -382,7 +397,7 @@ impl  Simulation  for EventDrivenSim  {
                         }
                     }
                 }
-                else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true) {
+                else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true, true) {
                     if min_react_after_switch == None {
                         min_react_after_switch = Some(t_delta);
                     } else {
@@ -406,8 +421,8 @@ impl  Simulation  for EventDrivenSim  {
                 }
                 else {
                     let t_delta = min_react_after_switch.unwrap();
-                    // Arbitrary time larger to ensure no looping between stop/start
-                    if t_delta > 0.01 {
+                    // Arbitrary time larger to ensure no looping between stop/start, choose 0.1s
+                    if t_delta > 0.1 {
                         events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                     }
                 }
@@ -569,10 +584,14 @@ impl  Simulation  for EventDrivenSim  {
 
         let mut t: Time = 0;
         while t < self.end_time {
-            if self.verbose {
+            // Debugging
+            if self.verbose && t > 597000 {
                 // raw_input();
             }
 
+            println!("START OF TIME");
+            let as_json= to_json(self.get_state()).unwrap();
+            println!("{}", &as_json);
             let next_event = self.next_event();
 
             if self.verbose {
@@ -587,6 +606,7 @@ impl  Simulation  for EventDrivenSim  {
             t = next_event.0;
 
             // Temp:
+            println!("END OF TIME");
             let as_json= to_json(self.get_state()).unwrap();
             println!("{}", &as_json);
         }
@@ -717,7 +737,7 @@ mod tests {
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
-        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false, false);
         assert!(f32::abs(t_p.unwrap() - 5.321429) < MY_EPSILON);
 
     }
@@ -736,7 +756,7 @@ mod tests {
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
-        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false, false);
         assert!(f32::abs(t_p.unwrap() - 4.25) < MY_EPSILON);
 
     }
@@ -755,7 +775,7 @@ mod tests {
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
-        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false, false);
         
         assert!(f32::abs(t_p.unwrap() - 1.539638691) < MY_EPSILON);
 
@@ -775,7 +795,7 @@ mod tests {
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
-        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false, false);
 
         assert!(f32::abs(t_p.unwrap() - 1.539638691) < MY_EPSILON);
 
@@ -796,7 +816,7 @@ mod tests {
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
-        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false, false);
 
         assert!(f32::abs(t_p.unwrap() - 0.466481135) < MY_EPSILON);
 
@@ -816,7 +836,7 @@ mod tests {
         let sim = dummy_sim(state);
         let mv1 = sim.state.get_vehicle(0);
         let mv2 = sim.state.get_vehicle(1);
-        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false);
+        let t_p = sim.time_to_obstacle_event::<dyn Obstacle>(mv1, mv2.as_obstacle(), false, false);
 
         // Negative time as already will end up in danger zone
         assert!(f32::abs(t_p.unwrap() - -0.124099041) < MY_EPSILON);
