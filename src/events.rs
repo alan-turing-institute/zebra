@@ -13,6 +13,7 @@ pub enum EventType {
     VehicleExit(usize),
     SpeedLimitReached(usize),
     ZeroSpeedReached(usize),
+    StaticSpeedReached(usize),
     ReactionToObstacle(usize),
 
     EmergencyStop(usize),
