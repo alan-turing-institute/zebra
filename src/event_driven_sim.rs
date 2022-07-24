@@ -359,14 +359,14 @@ impl  Simulation  for EventDrivenSim  {
             // Bool for no obstacles
             let mut no_ahead_obs = true;
 
-            // Loop over pedestrians in state to get active pedestrians
             // Pedestrian obstacles:
+            // Loop over pedestrians in state to get active pedestrians
             if let Some(obstacle) = vehicle.next_pedestrian(&self.get_road(), &self.state.get_pedestrians(), *self.state.timestamp())
             {
                 // An obstacle is present
                 no_ahead_obs = false;
 
-                // Get time action needed
+                // Get time braking is required to stop in time for next pedestrian
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, false) {
                     if t_delta >= 0.0 {
                         // TODO: consider rounding issues in TimeDelta conversion
@@ -380,6 +380,8 @@ impl  Simulation  for EventDrivenSim  {
                         }
                     }
                 }
+                // If no reaction to next pedestrian, if vehicle starts accelerating, get reaction time
+                // for braking to then begin in order to stop in time for pedestrian
                 else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true, false) {
                     // Debugging
                     if self.verbose {
@@ -407,7 +409,7 @@ impl  Simulation  for EventDrivenSim  {
                 // Upcast vehicle_obstacle to the Base trait Obstacle.
                 let obstacle: &dyn Obstacle = vehicle_obstacle.as_obstacle();
 
-        
+                // Get time required to start braking if next vehicle immediately starts braking now
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, true) {
                     if t_delta >= 0.0 {
                         // TODO: consider rounding issues in TimeDelta conversion
@@ -420,6 +422,8 @@ impl  Simulation  for EventDrivenSim  {
                         }
                     }
                 }
+                // If no reaction to next vehicle, if vehicle starts accelerating, get reaction time assuming
+                // next vehicle immediately starts braking
                 else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true, true) {
                     if min_react_after_switch == None {
                         min_react_after_switch = Some(t_delta);
@@ -428,7 +432,7 @@ impl  Simulation  for EventDrivenSim  {
                     }
                 }
 
-                // If decelerating and obstacle not, get time until relative speed is slightly -0.01
+                // If decelerating and obstacle not, get time until relative speed is slightly negative (-0.01m/s)
                 // and add event to switch to static speed ("follow") (providing no other events logged)
                 if vehicle.get_acceleration() < 0.0 && !(obstacle.get_acceleration() < 0.0) && min_react_after_switch == None {
                     let t_delta = self.time_to_rel_speed_aim::<dyn Obstacle>(&**vehicle, obstacle, -0.01).unwrap();
@@ -471,9 +475,8 @@ impl  Simulation  for EventDrivenSim  {
                 println!("Event {}: {:?}", i, event);
             }
         }
-        // TODO: handle case when a vehicle event is tied with a pedestrian arrival event
-        //       as this can cause to miss ZeroSpeedReached
-        // This is infallible since the vector always contains the termination time
+
+        // Get minimum next event time
         let min_time = events.iter().min().unwrap().0;
 
         events.into_iter().filter(|x| x.0 == min_time).collect()
