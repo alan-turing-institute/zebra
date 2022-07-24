@@ -11,8 +11,14 @@ pelican_go_time = 5000
 max_speed = 13.41
 
 [simulation]
-run_time = 600_000
+run_time = 1200_000
 num_pedestrians = 500
 num_vehicles = 500
 pedestrian_arrival_rate = 0.1
 vehicle_arrival_rate = 0.2
+# pedestrian_arrival_rate = 0.05
+# vehicle_arrival_rate = 0.2
+# pedestrian_arrival_rate = 0.2
+# vehicle_arrival_rate = 0.05
+# pedestrian_arrival_rate = 0.02
+# vehicle_arrival_rate = 0.1
