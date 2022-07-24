@@ -15,7 +15,7 @@ use crate::vehicle::{Vehicle, Car};
 pub trait Simulation  {
 
     // get time interval until next event
-    fn next_event(&mut self) -> Event;
+    fn next_events(&mut self) -> Vec<Event>;
 
     // roll simulation forward by time interval
     fn roll_forward_by(&mut self, time_delta: TimeDelta);
