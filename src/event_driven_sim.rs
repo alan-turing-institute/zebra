@@ -211,6 +211,21 @@ impl  EventDrivenSim  {
         }
     }
 
+    fn time_to_rel_speed_aim<T:Obstacle + ?Sized>(
+        &self, vehicle: &dyn Vehicle,
+        obstacle: &dyn Obstacle,
+        rel_speed_aim: f32
+    ) -> Option<f32> {
+        let rel_accel = vehicle.relative_acceleration(obstacle);
+        let rel_speed = vehicle.relative_speed(obstacle);
+        let rel_position = vehicle.relative_position(obstacle, &self.get_road());
+
+        assert!(rel_speed >= 0.0);
+        assert!(rel_accel < 0.0);
+
+        Some((rel_speed - rel_speed_aim)  / rel_accel)
+    }
+
     fn time_to_obstacle_event<T:Obstacle + ?Sized>(
         &self, vehicle: &dyn Vehicle,
         obstacle: &dyn Obstacle,
@@ -224,8 +239,11 @@ impl  EventDrivenSim  {
         let mut rel_position = vehicle.relative_position(obstacle, &self.get_road());
         let buffer = vehicle.get_buffer_zone();
 
-        // If in standard react mode, and vehicle already decelerating, no time is returned
-        if !veh_acc && vehicle.get_acceleration() == DECCELERATION_VALUE {
+        // If in standard react mode, and:
+        //   vehicle already decelerating
+        //   OR speed and accel less than or equal to obstacle
+        // no time is returned
+        if !veh_acc && (vehicle.get_acceleration() == DECCELERATION_VALUE || (rel_speed <= 0.0 && rel_accel <= 0.0)) {
             return None;
         }
 
@@ -245,8 +263,9 @@ impl  EventDrivenSim  {
             rel_accel = rel_accel - vehicle.get_acceleration() + ACCELERATION_VALUE;
         }
 
-        // If already ahead of buffer and testing veh_acc, do not acc
-        if rel_position > -buffer && veh_acc {
+        // If already near buffer (arbitrary within 10%) and testing veh_acc switch,
+        // do not acc so return time = 0
+        if rel_position > -1.1 * buffer && veh_acc {
             return Some(0.0);
         }
 
@@ -404,6 +423,13 @@ impl  Simulation  for EventDrivenSim  {
                         min_react_after_switch = Some(f32::min(min_react_after_switch.unwrap(), t_delta));
                     }
                 }
+
+                // If decelerating and obstacle not, get time until relative speed is slightly -0.01
+                // and add event to switch to static speed ("follow") (providing no other events logged)
+                if vehicle.get_acceleration() < 0.0 && !(obstacle.get_acceleration() < 0.0) && min_react_after_switch == None {
+                    let t_delta = self.time_to_rel_speed_aim::<dyn Obstacle>(&**vehicle, obstacle, -0.01).unwrap();
+                    events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::StaticSpeedReached(i)));
+                }
             }
 
             // Debug
@@ -439,6 +465,8 @@ impl  Simulation  for EventDrivenSim  {
                 println!("Event {}: {:?}", i, event);
             }
         }
+        // TODO: handle case when a vehicle event is tied with a pedestrian arrival event
+        //       as this can cause to miss ZeroSpeedReached
         // This is infallible since the vector always contains the termination time
         events.into_iter().min().unwrap()
     }
@@ -485,6 +513,10 @@ impl  Simulation  for EventDrivenSim  {
                 // vehicle.set_speed(0.0);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
+            }
+            StaticSpeedReached(idx) => {
+                let vehicle = self.state.get_mut_vehicle(idx);
+                vehicle.action(Action::StaticSpeed);
             }
             EmergencyStop(idx) => {
                 let vehicle = self.state.get_mut_vehicle(idx);
@@ -585,7 +617,10 @@ impl  Simulation  for EventDrivenSim  {
         let mut t: Time = 0;
         while t < self.end_time {
             // Debugging
-            if self.verbose && t > 597000 {
+            // if self.verbose && t > 208300 {
+            // if self.verbose && t > 88300 {
+            // if self.verbose && t > 237100 {
+            if self.verbose {
                 // raw_input();
             }
 
@@ -609,6 +644,12 @@ impl  Simulation  for EventDrivenSim  {
             println!("END OF TIME");
             let as_json= to_json(self.get_state()).unwrap();
             println!("{}", &as_json);
+            if self.verbose {
+                println!("Total vehicles: {}", self.veh_counter+1);
+                println!("Total pedestrians: {}", self.ped_counter+1);
+                println!("Current vehicles: {}", self.state.get_vehicles().len());
+                println!("Current pedestrians: {}", self.state.get_pedestrians().len());
+            }
         }
     }
 }
