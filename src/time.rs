@@ -46,8 +46,8 @@ impl From<i64> for TimeDelta {
 impl From<f32> for TimeDelta {
     fn from(secs: f32) -> Self {
         // TODO: consider whether floor is preferable
-        TimeDelta(f32::round(secs * (TIME_RESOLUTION as f32)) as Time)
-        // TimeDelta(f32::floor(secs * (TIME_RESOLUTION as f32)) as Time)
+        // TimeDelta(f32::round(secs * (TIME_RESOLUTION as f32)) as Time)
+        TimeDelta(f32::floor(secs * (TIME_RESOLUTION as f32)) as Time)
     }
 }
 
