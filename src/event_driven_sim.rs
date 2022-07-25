@@ -631,12 +631,8 @@ impl  Simulation  for EventDrivenSim  {
         while t < self.end_time {
             // Debugging
             if self.verbose && t > 0  {
-                // raw_input();
+                raw_input();
             }
-
-            println!("START OF TIME");
-            let as_json= to_json(self.get_state()).unwrap();
-            println!("{}", &as_json);
 
             // Get vec of events
             let next_events = self.next_events();
@@ -659,15 +655,14 @@ impl  Simulation  for EventDrivenSim  {
             t = next_event_time;
 
             // Temp prints
-            println!("END OF TIME");
+            println!("---");
+            println!("State after update at time: {t}");
             let as_json= to_json(self.get_state()).unwrap();
             println!("{}", &as_json);
-            if self.verbose || true {
-                println!("Total vehicles: {}", self.veh_counter+1);
-                println!("Total pedestrians: {}", self.ped_counter+1);
-                println!("Current vehicles: {}", self.state.get_vehicles().len());
-                println!("Current pedestrians: {}", self.state.get_pedestrians().len());
-            }
+            println!("Total vehicles: {}", self.veh_counter+1);
+            println!("Total pedestrians: {}", self.ped_counter+1);
+            println!("Current vehicles: {}", self.state.get_vehicles().len());
+            println!("Current pedestrians: {}", self.state.get_pedestrians().len());
         }
     }
 }
