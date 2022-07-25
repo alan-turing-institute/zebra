@@ -17,6 +17,10 @@ impl TimeDelta {
 
     pub const fn new(millis: Time) -> TimeDelta { TimeDelta(millis) }
     pub const fn from_secs(secs: Time) -> TimeDelta { TimeDelta(secs * TIME_RESOLUTION) }
+
+    pub fn floor(secs: f32) -> TimeDelta {
+        TimeDelta(f32::floor(secs * (TIME_RESOLUTION as f32)) as Time)
+    }
 }
 
 impl Into<f32> for &TimeDelta {
@@ -45,11 +49,11 @@ impl From<i64> for TimeDelta {
 
 impl From<f32> for TimeDelta {
     fn from(secs: f32) -> Self {
-        // TODO: consider whether floor is preferable
-        // TimeDelta(f32::round(secs * (TIME_RESOLUTION as f32)) as Time)
-        TimeDelta(f32::floor(secs * (TIME_RESOLUTION as f32)) as Time)
+        TimeDelta(f32::round(secs * (TIME_RESOLUTION as f32)) as Time)
     }
 }
+
+
 
 impl From<&f32> for TimeDelta {
     fn from(arg: &f32) -> Self {
