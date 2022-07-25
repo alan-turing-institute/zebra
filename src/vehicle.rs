@@ -19,13 +19,14 @@ pub const MAX_SPEED: f32 = 13.41;
 pub const ACCELERATION_VALUE: f32 = 3.0;
 pub const DECCELERATION_VALUE: f32 = -4.0;
 
+const ROUNDING: f32 = 1000.0;
+
 #[derive(Copy,Clone)]
 pub enum Action {
     Accelerate,
     Deccelerate,
     StaticSpeed
 }
-
 
 pub trait Vehicle : Obstacle {
     fn get_id(&self) -> ID;
@@ -174,7 +175,7 @@ impl Vehicle for Car {
         // TODO: proper fix required
         self.position = ((
             self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
-        )*rounding).round()/rounding;
+        )*ROUNDING).round()/ROUNDING;
 
 
         // println!{"{}", "Before:"}
@@ -185,7 +186,7 @@ impl Vehicle for Car {
         // Round to 2 dec places to avoid incorrect small +ves and -ves
         // Ensure speed is always ge than 0.0 with max
         // TODO: proper fix required, consider floor of t'
-        self.speed = f32::min(f32::max(((self.speed + self.acceleration * seconds) * rounding).round()/rounding, 0.0), MAX_SPEED);
+        self.speed = f32::min(f32::max(((self.speed + self.acceleration * seconds) * ROUNDING).round()/ROUNDING, 0.0), MAX_SPEED);
 
         // println!{"{}", "After:"}
         // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
