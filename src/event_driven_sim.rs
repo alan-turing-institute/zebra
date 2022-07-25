@@ -17,6 +17,11 @@ use crate::obstacle::Obstacle;
 use std::rc::Rc;
 use crate::{raw_input};
 
+const THRESHOLD_REACT: f32 = -0.001;
+const THRESHOLD_ACCELERATE: f32 = 0.2;
+const THRESHOLD_REL_SPEED: f32 = -0.1;
+const TIME_TO_EVENT_ROUNDING: f32 = 1000.0;
+
 pub struct EventDrivenSim  {
 
     seed: u64,
@@ -218,7 +223,6 @@ impl  EventDrivenSim  {
     ) -> Option<f32> {
         let rel_accel = vehicle.relative_acceleration(obstacle);
         let rel_speed = vehicle.relative_speed(obstacle);
-        let rel_position = vehicle.relative_position(obstacle, &self.get_road());
 
         assert!(rel_speed >= 0.0);
         assert!(rel_accel < 0.0);
@@ -275,10 +279,6 @@ impl  EventDrivenSim  {
         // Gamma value for convenience
         let gamma = 1. - rel_accel / DECCELERATION_VALUE;
         
-        // TODO: consider rounding
-        let rounding = 1000.0;
-        // let rounding = 100.0;
-
         // Case 1: rel_accel = 0
         if rel_accel == 0. {
             // If no relative speed
@@ -286,7 +286,7 @@ impl  EventDrivenSim  {
                 return None;
             }
             let t_prime = (1. / rel_speed) * (-buffer + (rel_speed*rel_speed)/(2. * DECCELERATION_VALUE) - rel_position);
-            return Some(f32::round(t_prime * rounding)/rounding);
+            return Some(f32::round(t_prime * TIME_TO_EVENT_ROUNDING)/TIME_TO_EVENT_ROUNDING);
         }
         // Case 2: rel_accel != 0
         else if rel_accel != 0.0 {
@@ -299,7 +299,7 @@ impl  EventDrivenSim  {
                     )
                 )
             ) / (rel_accel * gamma);
-            return Some(f32::round(t_prime * rounding)/rounding);
+            return Some(f32::round(t_prime * TIME_TO_EVENT_ROUNDING)/TIME_TO_EVENT_ROUNDING);
             
         } else {unreachable!()}
     }
@@ -338,10 +338,10 @@ impl  Simulation  for EventDrivenSim  {
             let accel = vehicle.get_acceleration();
             if accel > 0.0 {
                 let speed_delta = vehicle::MAX_SPEED - vehicle.get_speed();
-                let t_delta = TimeDelta::from(speed_delta / accel);
+                let t_delta = TimeDelta::floor(speed_delta / accel);
                 events.push(Event(curr_time + t_delta, EventType::SpeedLimitReached(i)));
             } else if accel < 0.0 && vehicle.get_speed() > 0.0 {
-                let t_delta = TimeDelta::from(vehicle.get_speed() / -vehicle.get_acceleration());
+                let t_delta = TimeDelta::floor(vehicle.get_speed() / -vehicle.get_acceleration());
                 events.push(Event(curr_time + t_delta, EventType::ZeroSpeedReached(i)));
             }
 
@@ -349,7 +349,7 @@ impl  Simulation  for EventDrivenSim  {
             //
             // Exit time from treating as obstacle
             if let Some(exit_time) = self.time_to_exit_event::<dyn Obstacle>(&**vehicle, self.road.get_exit()) {
-                let t_delta = TimeDelta::from(exit_time);
+                let t_delta = TimeDelta::floor(exit_time);
                 events.push(Event(curr_time + t_delta, EventType::VehicleExit(i)));
             }
 
@@ -368,9 +368,9 @@ impl  Simulation  for EventDrivenSim  {
 
                 // Get time braking is required to stop in time for next pedestrian
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, false) {
-                    if t_delta >= 0.0 {
+                    if t_delta >= THRESHOLD_REACT {
                         // TODO: consider rounding issues in TimeDelta conversion
-                        events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
+                        events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
                         // If speed is non-zero, must emergency stop
@@ -411,9 +411,9 @@ impl  Simulation  for EventDrivenSim  {
 
                 // Get time required to start braking if next vehicle immediately starts braking now
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, true) {
-                    if t_delta >= 0.0 {
+                    if t_delta >= THRESHOLD_REACT {
                         // TODO: consider rounding issues in TimeDelta conversion
-                        events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::ReactionToObstacle(i)));
+                        events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
                         // If speed is non-zero, must emergency stop
@@ -435,8 +435,12 @@ impl  Simulation  for EventDrivenSim  {
                 // If decelerating and obstacle not, get time until relative speed is slightly negative (-0.01m/s)
                 // and add event to switch to static speed ("follow") (providing no other events logged)
                 if vehicle.get_acceleration() < 0.0 && !(obstacle.get_acceleration() < 0.0) && min_react_after_switch == None {
-                    let t_delta = self.time_to_rel_speed_aim::<dyn Obstacle>(&**vehicle, obstacle, -0.01).unwrap();
-                    events.push(Event(curr_time + TimeDelta::from(t_delta), EventType::StaticSpeedReached(i)));
+                    let mut rel_speed_aim = THRESHOLD_REL_SPEED;
+                    if obstacle.get_speed() < -THRESHOLD_REL_SPEED {
+                        rel_speed_aim = 0.0;
+                    }
+                    let t_delta = self.time_to_rel_speed_aim::<dyn Obstacle>(&**vehicle, obstacle, rel_speed_aim).unwrap();
+                    events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::StaticSpeedReached(i)));
                 }
             }
 
@@ -448,9 +452,7 @@ impl  Simulation  for EventDrivenSim  {
             // If switching to accelerate causes no immediate reaction AND not top speed, accelerate
             if vehicle.get_speed() < MAX_SPEED && vehicle.get_acceleration() != ACCELERATION_VALUE {
                 if min_react_after_switch == None {
-                    // TODO: consider whether we can allow vehicle accelerate if None is present for time
-                    // Want to capture when no obstacle is ahead, which is different.
-                    // Removed for now.
+                    // If no obstacles are ahead, then accelerate
                     if no_ahead_obs {
                         events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                     }
@@ -458,7 +460,7 @@ impl  Simulation  for EventDrivenSim  {
                 else {
                     let t_delta = min_react_after_switch.unwrap();
                     // Arbitrary time larger to ensure no looping between stop/start, choose 0.2s
-                    if t_delta > 0.2 {
+                    if t_delta > THRESHOLD_ACCELERATE {
                         events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                     }
                 }
@@ -515,13 +517,13 @@ impl  Simulation  for EventDrivenSim  {
             }
             SpeedLimitReached(idx) => {
                 let vehicle = self.state.get_mut_vehicle(idx);
-                // vehicle.set_speed(MAX_SPEED);
+                vehicle.set_speed(MAX_SPEED);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
             }
             ZeroSpeedReached(idx) => {
                 let vehicle = self.state.get_mut_vehicle(idx);
-                // vehicle.set_speed(0.0);
+                vehicle.set_speed(0.0);
                 vehicle.action(Action::StaticSpeed);
                 // EventResult::VehicleChange(&*vehicle)
             }
@@ -780,7 +782,7 @@ mod tests {
 
         let next_events = sim.next_events();
         let actual = next_events.first().unwrap();
-        assert_eq!(actual.0, timestamp + TimeDelta::from((-1.0) * (speed / DECCELERATION_VALUE)));
+        assert_eq!(actual.0, timestamp + TimeDelta::floor((-1.0) * (speed / DECCELERATION_VALUE)));
     }
 
     #[test]
@@ -932,7 +934,7 @@ mod tests {
         let next_events = sim.next_events();
         let actual = next_events.first().unwrap();
         // println!("{:?}, {}", actual, timestamp, );
-        assert_eq!(actual.0, timestamp + TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
+        assert_eq!(actual.0, timestamp + TimeDelta::floor((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
     
     #[test]
@@ -1090,7 +1092,7 @@ mod tests {
 //         sim.set_state(Box::new(state));
 
 //         let actual= sim.next_events();
-//         assert_eq!(actual.0, timestamp + TimeDelta::from((-1.0) * (speed / DECCELERATION_VALUE)));
+//         assert_eq!(actual.0, timestamp + TimeDelta::floor((-1.0) * (speed / DECCELERATION_VALUE)));
 //     }
 
 //     #[test]
@@ -1106,7 +1108,7 @@ mod tests {
 //         sim.set_state(Box::new(state));
 
 //         let actual = sim.next_events();
-//         assert_eq!(actual.0, timestamp + TimeDelta::from((MAX_SPEED - speed) / ACCELERATION_VALUE));
+//         assert_eq!(actual.0, timestamp + TimeDelta::floor((MAX_SPEED - speed) / ACCELERATION_VALUE));
 //     }
 
 //     #[test]
