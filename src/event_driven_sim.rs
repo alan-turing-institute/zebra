@@ -3,6 +3,7 @@ use rand::rngs::StdRng;
 use rand::distributions::WeightedIndex;
 use rand::prelude::Distribution;
 use serde_json::to_string_pretty as to_json;
+use serde_json::to_string as to_json_flat;
 
 use crate::events::{Event, EventResult, EventType};
 use crate::pedestrian::Person;
@@ -16,6 +17,8 @@ use crate::state::{State, SimulatorState};
 use crate::obstacle::Obstacle;
 use std::rc::Rc;
 use crate::{raw_input};
+use std::fs::{OpenOptions};
+use std::io::Write;
 
 const THRESHOLD_REACT: f32 = -0.001;
 const THRESHOLD_ACCELERATE: f32 = 0.2;
@@ -627,6 +630,13 @@ impl  Simulation  for EventDrivenSim  {
     // Generic event-driven simulation algorithm.
     fn run(&mut self) -> () {
 
+        // Open a file for writing
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open("sim_states.json")
+            .unwrap();
+
         let mut t: Time = 0;
         while t < self.end_time {
             // Debugging
@@ -653,6 +663,9 @@ impl  Simulation  for EventDrivenSim  {
 
             // Change t
             t = next_event_time;
+
+            // Log state to file
+            writeln!(file, "{}", &to_json_flat(self.get_state()).unwrap()).expect("Tried to write state.");
 
             // Temp prints
             println!("---");
