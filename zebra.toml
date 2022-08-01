@@ -1,5 +1,5 @@
-road_length = 400
-zebra_crossings = [80, 340]
+road_length = 500
+zebra_crossings = [180, 440]
 # zebra_crossings = [80, 200, 340]
 pelican_crossings = []
 # zebra_crossings = [80, 200]
@@ -24,8 +24,13 @@ num_vehicles = 500
 # pedestrian_arrival_rate = 0.2
 # vehicle_arrival_rate = 0.4
 # pedestrian_arrival_rate = 0.2
-vehicle_arrival_rate = 0.1
+
+# vehicle_arrival_rate = 0.1
+# pedestrian_arrival_rate = 0.1
+
+vehicle_arrival_rate = 0.2
 pedestrian_arrival_rate = 0.1
+
 # vehicle_arrival_rate = 0.4
 # pedestrian_arrival_rate = 0.4
 # vehicle_arrival_rate = 0.5

@@ -105,6 +105,10 @@ impl Obstacle for Car{
         self.position
     }
 
+    fn get_obstacle_length(&self) -> f32 {
+        self.length
+    }
+
     fn get_speed(&self) -> f32 {
         self.speed
     }

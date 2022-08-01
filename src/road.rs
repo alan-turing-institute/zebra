@@ -28,6 +28,9 @@ impl Obstacle for Exit {
     fn get_position(&self, road: &Road, direction: &Direction) -> Length {
         self.position
     }
+    fn get_obstacle_length(&self) -> f32 {
+        0.0
+    }
     fn get_speed(&self) -> f32 {
         0.0
     }
@@ -119,6 +122,10 @@ impl Obstacle for Crossing {
         // Use the ID of this crossing to get its position in the road.
         let id = &self.get_id();
         road.get_crossing_position(id, *direction)
+    }
+
+    fn get_obstacle_length(&self) -> f32 {
+        0.0
     }
 
     fn get_speed(&self) -> f32 {
