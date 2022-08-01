@@ -21,7 +21,8 @@ use std::fs::{OpenOptions};
 use std::io::Write;
 
 const THRESHOLD_REACT: f32 = -0.001;
-const THRESHOLD_ACCELERATE: f32 = 0.2;
+const THRESHOLD_ACCELERATE: f32 = 1.;
+const MIN_DIST_TO_OBS: f32 = 1.;
 const THRESHOLD_REL_SPEED: f32 = -0.1;
 const TIME_TO_EVENT_ROUNDING: f32 = 1000.0;
 
@@ -358,6 +359,7 @@ impl  Simulation  for EventDrivenSim  {
 
             // Option for min reaction time across obstacles after a vehicles tries switching to accelerating
             let mut min_react_after_switch: Option<f32> = None;
+            let mut min_dist_to_obs: Option<f32> = None;
 
             // Bool for no obstacles
             let mut no_ahead_obs = true;
@@ -392,6 +394,7 @@ impl  Simulation  for EventDrivenSim  {
                     }
                     if min_react_after_switch == None {
                         min_react_after_switch = Some(t_delta);
+                        min_dist_to_obs = Some(-vehicle.relative_position(obstacle, &self.road));
                     }
                 }
             }
@@ -430,8 +433,10 @@ impl  Simulation  for EventDrivenSim  {
                 else if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, true, true) {
                     if min_react_after_switch == None {
                         min_react_after_switch = Some(t_delta);
+                        // min_dist_to_obs = Some(-vehicle.relative_position(obstacle, &self.road));
                     } else {
                         min_react_after_switch = Some(f32::min(min_react_after_switch.unwrap(), t_delta));
+                        // min_dist_to_obs = Some(f32::min(min_dist_to_obs.unwrap(), -vehicle.relative_position(obstacle, &self.road)));
                     }
                 }
 
@@ -462,9 +467,12 @@ impl  Simulation  for EventDrivenSim  {
                 }
                 else {
                     let t_delta = min_react_after_switch.unwrap();
+                    let dist = min_dist_to_obs;
                     // Arbitrary time larger to ensure no looping between stop/start, choose 0.2s
-                    if t_delta > THRESHOLD_ACCELERATE {
-                        events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+                    if dist == None || dist.unwrap() > MIN_DIST_TO_OBS {
+                        if t_delta > THRESHOLD_ACCELERATE {
+                            events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+                        }
                     }
                 }
             }
