@@ -47,6 +47,10 @@ impl Obstacle for Pedestrian {
         road.get_crossing_position(&id, *direction)
     }
 
+    fn get_obstacle_length(&self) -> f32 {
+        0.0
+    }
+
     fn get_speed(&self) -> f32 {
         0.0
     }

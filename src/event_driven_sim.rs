@@ -245,7 +245,7 @@ impl  EventDrivenSim  {
         let mut rel_accel = vehicle.relative_acceleration(obstacle);
         let mut rel_speed = vehicle.relative_speed(obstacle);
         let mut rel_position = vehicle.relative_position(obstacle, &self.get_road());
-        let buffer = vehicle.get_buffer_zone();
+        let buffer = vehicle.get_buffer_zone() + obstacle.get_obstacle_length();
 
         // If in standard react mode, and:
         //   vehicle already decelerating
@@ -373,6 +373,7 @@ impl  Simulation  for EventDrivenSim  {
 
                 // Get time braking is required to stop in time for next pedestrian
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, false) {
+                    // TODO: consider making t_delta, f32::max(0., t_delta) so always react even if too late.
                     if t_delta >= THRESHOLD_REACT {
                         // TODO: consider rounding issues in TimeDelta conversion
                         events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
