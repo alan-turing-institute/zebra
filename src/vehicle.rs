@@ -260,18 +260,25 @@ impl Vehicle for Car {
         if peds.len() == 0 {
             return Option::None
         }
+        let mut next_ped: Option<&Pedestrian> = None;
         for ped in peds {
             // If ped is active (crossing), then check if vehicle is at position less than the
             // crossing.
             if ped.is_active(time) {
                 let pos = ped.get_position(road, my_direction);
                 if self.get_veh_position() < pos {
-                    // println!("Pedestrian up ahead: {:?}", ped);
-                    return Some(&ped);
+                    if next_ped.is_none() {
+                        next_ped = Some(&ped);
+                    }
+                    else {
+                        if pos < next_ped.unwrap().get_position(road, my_direction) {
+                            next_ped = Some(&ped);
+                        }
+                    }
                 }
             }
         }
-        None
+        next_ped
     }
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
         let my_direction = &self.get_direction();
