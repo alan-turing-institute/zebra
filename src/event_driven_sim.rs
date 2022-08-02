@@ -20,10 +20,15 @@ use crate::{raw_input};
 use std::fs::{OpenOptions};
 use std::io::Write;
 
+// Minimum reaction to obstacle
 const THRESHOLD_REACT: f32 = -0.001;
+// Minimum time before next braking event
 const THRESHOLD_ACCELERATE: f32 = 1.;
-const MIN_DIST_TO_OBS: f32 = 1.;
+// Minimum gap from vehicle to pedestrian for allowed accelerate event
+const MIN_DIST_TO_OBS: f32 = 0.;
+// Target relative speed for following
 const THRESHOLD_REL_SPEED: f32 = -0.1;
+// Reciprocal of rounding used for f32 calculations
 const TIME_TO_EVENT_ROUNDING: f32 = 1000.0;
 
 pub struct EventDrivenSim  {
@@ -120,18 +125,17 @@ impl  EventDrivenSim  {
     }
 
     fn generate_ped(&mut self) {
-	// self.state.add_ped();
-	self.ped_counter += 1;
+        // self.state.add_ped();
+        self.ped_counter += 1;
     }
 
     fn generate_veh(&mut self) {
-	// self.state.add_veh();
-	self.veh_counter += 1;
+        // self.state.add_veh();
+        self.veh_counter += 1;
     }
     // pub fn current_state() -> State {
 
     // }
-
     fn new_vehicle(&mut self) -> &dyn Vehicle {
         // let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
         let direction_dist = rand::distributions::WeightedIndex::new(&[1., 0.]).unwrap();
@@ -271,9 +275,9 @@ impl  EventDrivenSim  {
             rel_accel = rel_accel - vehicle.get_acceleration() + ACCELERATION_VALUE;
         }
 
-        // If already near buffer (arbitrary within 10%) and testing veh_acc switch,
-        // do not acc so return time = 0
-        if rel_position > -1.1 * buffer && veh_acc {
+        // If already near buffer and testing veh_acc switch,
+        // do not acc so return time = 0.
+        if rel_position > -buffer && veh_acc {
             return Some(0.0);
         }
 
@@ -373,9 +377,9 @@ impl  Simulation  for EventDrivenSim  {
 
                 // Get time braking is required to stop in time for next pedestrian
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, false) {
-                    // TODO: consider making t_delta, f32::max(0., t_delta) so always react even if too late.
+                    // If braking is too late (t_delta < THRESHOLD_REACT), let vehicle continue
                     if t_delta >= THRESHOLD_REACT {
-                        // TODO: consider rounding issues in TimeDelta conversion
+                        // Round down to avoid rounding up into a danger zone
                         events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
@@ -418,8 +422,9 @@ impl  Simulation  for EventDrivenSim  {
 
                 // Get time required to start braking if next vehicle immediately starts braking now
                 if let Some(t_delta) = self.time_to_obstacle_event::<dyn Obstacle>(&**vehicle, obstacle, false, true) {
+                    // TODO: consider making t_delta, f32::max(0., t_delta) so always react even if too late.
                     if t_delta >= THRESHOLD_REACT {
-                        // TODO: consider rounding issues in TimeDelta conversion
+                        // Round down to avoid rounding up into a danger zone
                         events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
