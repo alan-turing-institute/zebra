@@ -48,7 +48,8 @@ impl Obstacle for Pedestrian {
     }
 
     fn get_obstacle_length(&self) -> f32 {
-        0.0
+        // Set length as 1m to get cars to stop buffer plus 1m away
+        1.0
     }
 
     fn get_speed(&self) -> f32 {
