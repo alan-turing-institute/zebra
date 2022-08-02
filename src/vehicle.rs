@@ -287,7 +287,7 @@ impl Vehicle for Car {
         }
         for vehicle in vehicles.into_iter().rev() {
             // Ignore vehicles going in the other direction OR are the same vehicle
-            if !matches!(vehicle.get_direction(), my_direction) || vehicle.get_id() == self.get_id() {
+            if vehicle.get_direction() != *my_direction || vehicle.get_id() == self.get_id() {
                 continue;
             }
 
