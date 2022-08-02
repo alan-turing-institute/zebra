@@ -7,7 +7,7 @@ use crate::config::{get_zebra_config};
 use crate::{Length, Position, Time};
 use std::rc::Rc;
 
-#[derive(Copy,Clone,Serialize,Deserialize,Debug)]
+#[derive(Copy,Clone,Serialize,Deserialize,Debug,PartialEq)]
 pub enum Direction {
     Up,
     Down
