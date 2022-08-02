@@ -137,8 +137,8 @@ impl  EventDrivenSim  {
 
     // }
     fn new_vehicle(&mut self) -> &dyn Vehicle {
-        // let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
-        let direction_dist = rand::distributions::WeightedIndex::new(&[1., 0.]).unwrap();
+        let direction_dist = rand::distributions::WeightedIndex::new(&[0.5, 0.5]).unwrap();
+        // let direction_dist = rand::distributions::WeightedIndex::new(&[1., 0.]).unwrap();
         let direction = if direction_dist.sample(&mut self.rng) == 0{
             Direction::Up
         } else {
