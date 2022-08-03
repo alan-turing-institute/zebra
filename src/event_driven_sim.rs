@@ -473,12 +473,25 @@ impl  Simulation  for EventDrivenSim  {
                 }
                 else {
                     let t_delta = min_react_after_switch.unwrap();
+<<<<<<< HEAD
                     let dist = min_dist_to_obs;
                     // Arbitrary time larger to ensure no looping between stop/start, choose 0.2s
                     if dist == None || dist.unwrap() > MIN_DIST_TO_OBS {
                         if t_delta > THRESHOLD_ACCELERATE {
                             events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                         }
+||||||| 66e9862
+                    // Arbitrary time larger to ensure no looping between stop/start, choose 0.2s
+                    if t_delta > THRESHOLD_ACCELERATE {
+                        events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+=======
+                    let dist = min_dist_to_obs;
+                    // Arbitrary time larger to ensure no looping between stop/start: THRESHOLD_ACCELERATE
+                    if dist == None || dist.unwrap() > MIN_DIST_TO_OBS {
+                        if t_delta > THRESHOLD_ACCELERATE {
+                            events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
+                        }
+>>>>>>> 34-obstacle-reaction-update
                     }
                 }
             }
@@ -794,7 +807,7 @@ mod tests {
     fn test_vehicle_stopping_event() {
         let speed = 10.0;
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
-        vehicles.push_back(Box::new(Car::new(0u64, Direction::Up, speed, Action::Deccelerate)));
+        vehicles.push_back(Box::new(Car::new(0 as ID, Direction::Up, speed, Action::Deccelerate)));
 
 
         let timestamp = 22 * TIME_RESOLUTION;
@@ -812,7 +825,7 @@ mod tests {
         let mut v1 = Car::new(0, Direction::Up, 14., Action::StaticSpeed);
         let mut v2 = Car::new(1, Direction::Up, 0., Action::StaticSpeed);
         v1.set_position(0.);
-        v2.set_position(100.);
+        v2.set_position(100. + v2.get_length());
 
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
@@ -831,7 +844,7 @@ mod tests {
         let mut v1 = Car::new(0, Direction::Up, 14., Action::StaticSpeed);
         let mut v2 = Car::new(1, Direction::Up, 10., Action::StaticSpeed);
         v1.set_position(80.);
-        v2.set_position(100.);
+        v2.set_position(100. + v2.get_length());
 
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
@@ -850,7 +863,7 @@ mod tests {
         let mut v1 = Car::new(0, Direction::Up, 4., Action::Accelerate);
         let mut v2 = Car::new(1, Direction::Up, 0., Action::StaticSpeed);
         v1.set_position(0.);
-        v2.set_position(20.);
+        v2.set_position(20. + v2.get_length());
 
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
@@ -870,7 +883,7 @@ mod tests {
         let mut v1 = Car::new(0, Direction::Up, 14., Action::Accelerate);
         let mut v2 = Car::new(1, Direction::Up, 10., Action::StaticSpeed);
         v1.set_position(80.);
-        v2.set_position(100.);
+        v2.set_position(100. + v2.get_length());
 
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
@@ -891,7 +904,7 @@ mod tests {
         let mut v1 = Car::new(0, Direction::Up, 14., Action::Accelerate);
         let mut v2 = Car::new(1, Direction::Up, 10., Action::Deccelerate);
         v1.set_position(0.);
-        v2.set_position(25.);
+        v2.set_position(25. + v2.get_length());
 
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
@@ -911,7 +924,7 @@ mod tests {
         let mut v1 = Car::new(0, Direction::Up, 14., Action::Accelerate);
         let mut v2 = Car::new(1, Direction::Up, 10., Action::Deccelerate);
         v1.set_position(0.);
-        v2.set_position(10.);
+        v2.set_position(10. + v2.get_length());
 
         let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
         vehicles.push_back(Box::new(v1));
@@ -937,30 +950,14 @@ mod tests {
         let state = Box::new(SimulatorState::dummy(vehicles.into(), VecDeque::new(), timestamp));
 
         let mut sim = dummy_sim(state);
-        // sim.set_state(Box::new(state));
-
-        // let veh = sim.state.get_vehicle(0);
-        // let pos = veh.get_position(sim.get_road(), &Direction::Up);
-        // let speed = veh.get_speed();
-        // let acc = veh.get_acceleration();
-        // let time = sim.time_to_obstacle_event::<dyn Obstacle>(veh, sim.road.get_exit(), false).unwrap();
-        // println!("time delta: {:?}, exit: {:?}, pos:{:?}, speed: {:?}, acc: {:?}",
-        // time, sim.road.get_exit(), pos, speed, acc);
-        // println!("time delta: {:?}, exit: {:?}, rel_pos:{:?}, rel_speed: {:?}, rel_acc: {:?}",
-        // time, sim.road.get_exit(),
-        // veh.relative_position(sim.road.get_exit(), sim.get_road()),
-        // veh.relative_speed(sim.road.get_exit()),
-        // veh.relative_acceleration(sim.road.get_exit())
-        // );
 
         let next_events = sim.next_events();
         let actual = next_events.first().unwrap();
-        // println!("{:?}, {}", actual, timestamp, );
+
         assert_eq!(actual.0, timestamp + TimeDelta::floor((MAX_SPEED - speed) / ACCELERATION_VALUE));
     }
     
     #[test]
-    #[ignore]
     fn test_integration_two_zebras() {
 
         let crossings = vec![
@@ -970,7 +967,7 @@ mod tests {
 
         let road = Road::new(300.0f32, crossings);
         let state = Box::new(SimulatorState::new());
-        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.2, state, road, false);
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.1, state, road, false);
 
         sim.run();
     
