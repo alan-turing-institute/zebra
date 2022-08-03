@@ -473,25 +473,12 @@ impl  Simulation  for EventDrivenSim  {
                 }
                 else {
                     let t_delta = min_react_after_switch.unwrap();
-<<<<<<< HEAD
-                    let dist = min_dist_to_obs;
-                    // Arbitrary time larger to ensure no looping between stop/start, choose 0.2s
-                    if dist == None || dist.unwrap() > MIN_DIST_TO_OBS {
-                        if t_delta > THRESHOLD_ACCELERATE {
-                            events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
-                        }
-||||||| 66e9862
-                    // Arbitrary time larger to ensure no looping between stop/start, choose 0.2s
-                    if t_delta > THRESHOLD_ACCELERATE {
-                        events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
-=======
                     let dist = min_dist_to_obs;
                     // Arbitrary time larger to ensure no looping between stop/start: THRESHOLD_ACCELERATE
                     if dist == None || dist.unwrap() > MIN_DIST_TO_OBS {
                         if t_delta > THRESHOLD_ACCELERATE {
                             events.push(Event(curr_time, EventType::VehicleAccelerate(i)));
                         }
->>>>>>> 34-obstacle-reaction-update
                     }
                 }
             }
