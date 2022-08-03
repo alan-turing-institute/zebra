@@ -1,6 +1,6 @@
-road_length = 500
-zebra_crossings = [180, 440]
-# zebra_crossings = [80, 200, 340]
+road_length = 600
+# zebra_crossings = [180, 440]
+zebra_crossings = [180, 300, 440]
 pelican_crossings = []
 # zebra_crossings = [80, 200]
 # pelican_crossings = [340]
