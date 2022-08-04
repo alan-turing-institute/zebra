@@ -32,7 +32,7 @@ num_vehicles = 500
 # pedestrian_arrival_rate = 0.15
 # # pedestrian_arrival_rate = 0.05
 
-vehicle_arrival_rate = 0.25
+vehicle_arrival_rate = 0.2
 pedestrian_arrival_rate = 0.1
 # pedestrian_arrival_rate = 0.05
 

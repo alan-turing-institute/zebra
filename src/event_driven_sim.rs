@@ -83,8 +83,8 @@ impl  EventDrivenSim  {
 
         // Ensure big enough gap to brake: 13.41m/s to 0. is 3.35, so round to 3400ms
         for i in 0..veh_arrival_times.len() { 
-            if i > 0 && veh_arrival_times[i] - veh_arrival_times[i] < 3400 {
-                veh_arrival_times[i] = veh_arrival_times[i-1] + 3400
+            if i > 0 && veh_arrival_times[i] - veh_arrival_times[i-1] < 3400 {
+                veh_arrival_times[i] = veh_arrival_times[i-1] + 3400;
             }
         }
 
@@ -383,9 +383,8 @@ impl  Simulation  for EventDrivenSim  {
                         events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
-                        // If speed is non-zero, must emergency stop
+                        // Not implementated: if speed is non-zero, must emergency stop
                         if vehicle.get_speed() != 0.0 {
-                            // Remove emergency stop for pedestrian as should never occur
                             // events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
                     }
@@ -428,7 +427,7 @@ impl  Simulation  for EventDrivenSim  {
                         events.push(Event(curr_time + TimeDelta::floor(t_delta), EventType::ReactionToObstacle(i)));
                     }
                     else {
-                        // If speed is non-zero, must emergency stop
+                        // Not implementated: if speed is non-zero, must emergency stop
                         if vehicle.get_speed() != 0.0 {
                             // events.push(Event(curr_time, EventType::EmergencyStop(i)));
                         }
@@ -697,8 +696,7 @@ impl  Simulation  for EventDrivenSim  {
 
 #[cfg(test)]
 mod tests {
-    use core::time;
-    use std::{collections::VecDeque, f32::EPSILON};
+    use std::{collections::VecDeque};
     use crate::vehicle::{DECCELERATION_VALUE, MAX_SPEED};
     use super::*;
     const MY_EPSILON: f32 = 0.001;
@@ -788,22 +786,42 @@ mod tests {
         assert_eq!(actual.0, 4000);
     }
 
-    // TODO: update given change in event handling
     #[test]
-    #[ignore]
     fn test_vehicle_stopping_event() {
-        let speed = 10.0;
-        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
-        vehicles.push_back(Box::new(Car::new(0 as ID, Direction::Up, speed, Action::Deccelerate)));
+        // Make crossings and road
+        let crossings = vec![
+	        (Crossing::Zebra { id: 0, cross_time: TimeDelta::from_secs(10) }, 170.0),
+	        (Crossing::Zebra { id: 1, cross_time: TimeDelta::from_secs(10) }, 290.0),
+	    ];
+        let road = Road::new(300.0f32, crossings);
 
-
+        // Set time
         let timestamp = 22 * TIME_RESOLUTION;
-        let state = Box::new(SimulatorState::dummy(vehicles, VecDeque::new(), timestamp));
 
-        let mut sim = dummy_sim(state);
+        // Make vehicles
+        let mut vehicles: VecDeque<Box<dyn Vehicle>> = VecDeque::new();
+        let speed = 10.0;    
+        let mut car = Car::new(0 as ID, Direction::Up, speed, Action::Deccelerate);
 
+        // Set car near crossing
+        car.set_position(140.);
+        vehicles.push_back(Box::new(car));
+
+        // Place pedestrian at first crossing
+        let crossing = &road.get_crossings(&Direction::Up)[0].0;
+        let mut peds: VecDeque<Pedestrian> = VecDeque::new();
+        peds.push_back(Pedestrian::new(0, Rc::clone(&crossing), timestamp));
+
+        // Make state
+        let state = Box::new(SimulatorState::dummy(vehicles, peds, timestamp));
+
+        // Make sim from state and road
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.1, state, road, false);
+
+        // Get next events
         let next_events = sim.next_events();
         let actual = next_events.first().unwrap();
+
         assert_eq!(actual.0, timestamp + TimeDelta::floor((-1.0) * (speed / DECCELERATION_VALUE)));
     }
 
