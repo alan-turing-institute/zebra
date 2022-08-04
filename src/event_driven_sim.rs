@@ -83,8 +83,8 @@ impl  EventDrivenSim  {
 
         // Ensure big enough gap to brake: 13.41m/s to 0. is 3.35, so round to 3400ms
         for i in 0..veh_arrival_times.len() { 
-            if i > 0 && veh_arrival_times[i] - veh_arrival_times[i] < 3400 {
-                veh_arrival_times[i] = veh_arrival_times[i-1] + 3400
+            if i > 0 && veh_arrival_times[i] - veh_arrival_times[i-1] < 3400 {
+                veh_arrival_times[i] = veh_arrival_times[i-1] + 3400;
             }
         }
 
