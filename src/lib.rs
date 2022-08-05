@@ -20,7 +20,7 @@ pub type Acceleration = f32;
 pub type Position = Length;
 
 pub use road::*;
-pub use config::get_zebra_config;
+pub use config::{get_zebra_config, get_zebra_config_option};
 pub use simulation::Simulation;
 
 use std::io;                                                                                                                                                              

@@ -17,13 +17,24 @@ fn main() {
                 .long("verbose")
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            arg!(-o --outfile <OUTFILE>)
+            .required(false)
+        )
+        .arg(
+            arg!(-c --config_file <CONFIG_FILE>)
+            .required(false)
+        )
         .get_matches();    
 
     // Get configs
-    let zebra_config = get_zebra_config();
+    // let zebra_config = get_zebra_config();
+    let zebra_config = get_zebra_config_option(matches.get_one::<String>("config_file"));
 
     // Load road from config
-    let road = Road::config_new();
+    let road = Road::config_new(matches.get_one::<String>("config_file"));
+
+    println!("{:?}", zebra_config);
 
     // Make simulation
     let mut simulation = EventDrivenSim::new(
