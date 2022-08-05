@@ -34,7 +34,11 @@ fn main() {
     // Load road from config
     let road = Road::config_new(matches.get_one::<String>("config_file"));
 
-    println!("{:?}", zebra_config);
+    // Extract outfile arg as Option<String>
+    let outfile = match matches.get_one::<String>("outfile") {
+        Some(x) => Some(x.clone()),
+        _ => None
+    };
 
     // Make simulation
     let mut simulation = EventDrivenSim::new(
@@ -45,6 +49,7 @@ fn main() {
         zebra_config.simulation.vehicle_arrival_rate,
         Box::new(SimulatorState::new()), 
         road,
+        outfile,
         *matches.get_one::<bool>("verbose").expect("defaulted by clap")
     );
 

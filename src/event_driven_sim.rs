@@ -50,6 +50,7 @@ pub struct EventDrivenSim  {
     // dist: WeightedIndex<T>,
     pub state: Box<dyn State >,
     road: Road,
+    outfile: String,
     verbose: bool
 }
 
@@ -64,6 +65,7 @@ impl  EventDrivenSim  {
 	    // crossing_weights: Vec<f64>,
         state: Box<dyn State>,
         road: Road,
+        outfile_option: Option<String>,
         verbose: bool
     ) -> Self {
 
@@ -91,6 +93,14 @@ impl  EventDrivenSim  {
         // Construct initial (empty) state at time 0.
         // let state = Box::new(SimulatorState::new());
         // let state = Box::new(SimulatorState::new());
+        
+        // Get string for outfile
+        let outfile: String = if outfile_option.is_none() {
+            "sim_states.json".to_string()
+        }
+        else {
+            outfile_option.unwrap()
+        };
 
         Self {
             seed,
@@ -106,6 +116,7 @@ impl  EventDrivenSim  {
             // dist,
             road,
             state,
+            outfile,
             verbose
         }
     }
@@ -647,7 +658,7 @@ impl  Simulation  for EventDrivenSim  {
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-            .open("sim_states.json")
+            .open(&self.outfile[..])
             .unwrap();
 
         let mut t: Time = 0;
@@ -704,13 +715,13 @@ mod tests {
     fn dummy_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
         // let state = Box::new(SimulatorState::new());
-        EventDrivenSim::new(147, 0, 500_000, 0.1, 0.2, state,  road, false)
+        EventDrivenSim::new(147, 0, 500_000, 0.1, 0.2, state,  road, None, false)
     }
 
     fn dummy_no_arrivals_sim(state: Box<dyn State >) -> EventDrivenSim  {
         let road = Road::new(100.0, Vec::new());
         // let state = Box::new(SimulatorState::new());
-        EventDrivenSim::new(147, 0, 500_000, 0.0, 0.0, state, road, false)
+        EventDrivenSim::new(147, 0, 500_000, 0.0, 0.0, state, road, None, false)
     }
 
     #[test]
@@ -816,7 +827,7 @@ mod tests {
         let state = Box::new(SimulatorState::dummy(vehicles, peds, timestamp));
 
         // Make sim from state and road
-        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.1, state, road, false);
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.1, state, road, None, false);
 
         // Get next events
         let next_events = sim.next_events();
@@ -972,7 +983,7 @@ mod tests {
 
         let road = Road::new(300.0f32, crossings);
         let state = Box::new(SimulatorState::new());
-        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.1, state, road, false);
+        let mut sim = EventDrivenSim::new(12345, 0, 500_000, 0.1, 0.1, state, road, None, false);
 
         sim.run();
     
