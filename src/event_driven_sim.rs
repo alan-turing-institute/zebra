@@ -646,8 +646,9 @@ impl  Simulation  for EventDrivenSim  {
             // Open a file for writing
             Some(
                 OpenOptions::new()
-                .write(true)
                 .create(true)
+                .write(true)
+                .truncate(true)
                 .open(self.outfile.as_ref().unwrap())
                 .unwrap()
             )

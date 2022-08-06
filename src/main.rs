@@ -18,16 +18,17 @@ fn main() {
         .arg(
             arg!(-o --outfile <OUTFILE>)
             .default_value("sim_states.json")
-            // .required(false)
+            .required(false)
         )
         .arg(
             arg!(-c --config_file <CONFIG_FILE>)
             .default_value("zebra.toml")
-            // .required(false)
+            .required(false)
         )
         .arg(
             arg!(-s --seed <SEED>)
             .default_value("0")
+            .required(false)
             .value_parser(value_parser!(u64))
         )
         .get_matches();    
