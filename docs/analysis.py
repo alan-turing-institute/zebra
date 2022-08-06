@@ -145,18 +145,19 @@ def get_animation(states, zebra_toml, **kwargs):  # pylint: disable=too-many-loc
     )
 
 
-def display_and_save_animation(states, zebra_toml, animation_file):
+def display_and_save_animation(states, zebra_toml, animation_file, **kwargs):
     """Make animation and save as gif."""
 
     # Pillow writer for gif
     pillow_writer = plt.matplotlib.animation.PillowWriter(fps=15)
 
     # Get animation
-    animation = get_animation(states, zebra_toml)
+    animation = get_animation(states, zebra_toml, **kwargs)
     html5 = animation.to_html5_video()
 
-    # Save as gif
-    animation.save(animation_file, dpi=100, writer=pillow_writer)
+    if kwargs.get("write", True):
+        # Save as gif
+        animation.save(animation_file, dpi=100, writer=pillow_writer)
 
     return html5
 
