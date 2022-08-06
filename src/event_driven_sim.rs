@@ -50,7 +50,7 @@ pub struct EventDrivenSim  {
     // dist: WeightedIndex<T>,
     pub state: Box<dyn State >,
     road: Road,
-    outfile: String,
+    outfile: Option<String>,
     verbose: bool
 }
 
@@ -65,7 +65,7 @@ impl  EventDrivenSim  {
 	    // crossing_weights: Vec<f64>,
         state: Box<dyn State>,
         road: Road,
-        outfile_option: Option<String>,
+        outfile: Option<String>,
         verbose: bool
     ) -> Self {
 
@@ -89,18 +89,6 @@ impl  EventDrivenSim  {
                 veh_arrival_times[i] = veh_arrival_times[i-1] + 3400;
             }
         }
-
-        // Construct initial (empty) state at time 0.
-        // let state = Box::new(SimulatorState::new());
-        // let state = Box::new(SimulatorState::new());
-        
-        // Get string for outfile
-        let outfile: String = if outfile_option.is_none() {
-            "sim_states.json".to_string()
-        }
-        else {
-            outfile_option.unwrap()
-        };
 
         Self {
             seed,
@@ -654,12 +642,19 @@ impl  Simulation  for EventDrivenSim  {
     // Generic event-driven simulation algorithm.
     fn run(&mut self) -> () {
 
-        // Open a file for writing
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&self.outfile[..])
-            .unwrap();
+        let mut file = if self.outfile.is_some() {
+            // Open a file for writing
+            Some(
+                OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(self.outfile.as_ref().unwrap())
+                .unwrap()
+            )
+        }
+        else {
+            None
+        };
 
         let mut t: Time = 0;
         while t < self.end_time {
@@ -689,7 +684,13 @@ impl  Simulation  for EventDrivenSim  {
             t = next_event_time;
 
             // Log state to file
-            writeln!(file, "{}", &to_json_flat(self.get_state()).unwrap()).expect("Tried to write state.");
+            match file {
+                Some(ref mut x) => {
+                    writeln!(x, "{}", &to_json_flat(self.get_state()).unwrap())
+                    .expect("Tried to write state.")
+                },
+                _ => ()
+            };
 
             // Temp prints
             println!("---");
