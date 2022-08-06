@@ -168,10 +168,14 @@ impl  EventDrivenSim  {
         self.state.get_pedestrian(idx)
     }
 
-    fn remove_vehicle(&mut self, idx: usize) {
+    fn remove_vehicle(&mut self, id: ID) {
         // If all vehicles are Up, then this should hold.
-        // assert_eq!(idx, 0);
-        self.state.pop_vehicle(idx);
+        for (idx, veh) in self.state.get_vehicles().into_iter().enumerate() {
+            if veh.get_id() == id {
+                self.state.pop_vehicle(idx);
+                break;
+            }
+        }
     }
 
     fn remove_pedestrian(&mut self, id: ID) {
@@ -357,7 +361,7 @@ impl  Simulation  for EventDrivenSim  {
             // Exit time from treating as obstacle
             if let Some(exit_time) = self.time_to_exit_event::<dyn Obstacle>(&**vehicle, self.road.get_exit()) {
                 let t_delta = TimeDelta::floor(exit_time);
-                events.push(Event(curr_time + t_delta, EventType::VehicleExit(i)));
+                events.push(Event(curr_time + t_delta, EventType::VehicleExit(vehicle.get_id())));
             }
 
             // Option for min reaction time across obstacles after a vehicles tries switching to accelerating
@@ -526,8 +530,8 @@ impl  Simulation  for EventDrivenSim  {
                 // self.new_vehicle();
                 // EventResult::NewVehicle(self.new_vehicle())
             }
-            VehicleExit(idx) => {
-                self.remove_vehicle(idx);
+            VehicleExit(id) => {
+                self.remove_vehicle(id);
                 // EventResult::RemoveVehicle
             }
             SpeedLimitReached(idx) => {
