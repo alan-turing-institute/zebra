@@ -1,9 +1,7 @@
 use zebra::*;
 
-use clap::Parser;
 use zebra::event_driven_sim::EventDrivenSim;
 use zebra::state::SimulatorState;
-use serde_json::to_string as to_json;
 use clap::{arg, Arg, command, ArgAction, value_parser};
 
 // #[derive(Debug, Parser)]
@@ -35,17 +33,10 @@ fn main() {
         .get_matches();    
 
     // Get configs
-    // let zebra_config = get_zebra_config();
     let zebra_config = get_zebra_config_option(matches.get_one::<String>("config_file"));
 
     // Load road from config
     let road = Road::config_new(matches.get_one::<String>("config_file"));
-
-    // Extract outfile arg as Option<String>
-    let outfile = match matches.get_one::<String>("outfile") {
-        Some(x) => Some(x.clone()),
-        _ => None
-    };
 
     // Make simulation
     let mut simulation = EventDrivenSim::new(
