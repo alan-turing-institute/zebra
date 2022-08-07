@@ -21,7 +21,8 @@ use std::fs::{OpenOptions};
 use std::io::Write;
 
 // Minimum reaction to obstacle
-const THRESHOLD_REACT: f32 = -0.001;
+// const THRESHOLD_REACT: f32 = -0.001;
+const THRESHOLD_REACT: f32 = 0.0;
 // Minimum time before next braking event
 const THRESHOLD_ACCELERATE: f32 = 1.;
 // Minimum gap from vehicle to pedestrian for allowed accelerate event
@@ -492,7 +493,6 @@ impl  Simulation  for EventDrivenSim  {
             // Sort events
             events.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.0, &y.0).unwrap());
             for (i, event) in events.iter().enumerate() {
-            // for (i, event) in  {
                 println!("Event {}: {:?}", i, event);
             }
         }
@@ -500,7 +500,15 @@ impl  Simulation  for EventDrivenSim  {
         // Get minimum next event time
         let min_time = events.iter().min().unwrap().0;
 
-        events.into_iter().filter(|x| x.0 == min_time).collect()
+        // Filter for min_time events
+        let mut events: Vec<Event> = events.into_iter().filter(|x| x.0 == min_time).collect();
+
+        // Sort vec of enums so ordering has vec size mut events last:
+        // E.g. ..., VehicleExit, PedestrianExit, VehicleArrival, PedestrianArrival
+        events.sort_by(|x, y| std::cmp::PartialOrd::partial_cmp(&x.1, &y.1).unwrap());
+
+        // Return events
+        events
     }
 
     // roll state forward by time interval

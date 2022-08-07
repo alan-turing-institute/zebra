@@ -4,13 +4,11 @@ use crate::vehicle::{Vehicle};
 
 use std::cmp::{Ord, Eq, Ordering};
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum EventType {
-
-    VehicleArrival,
+    // Ordered according to the order they should be handled
     VehicleAccelerate(usize),
-    VehicleExit(ID),
     SpeedLimitReached(usize),
     ZeroSpeedReached(usize),
     StaticSpeedReached(usize),
@@ -18,11 +16,14 @@ pub enum EventType {
 
     EmergencyStop(usize),
 
-    PedestrianArrival,
-    PedestrianExit(ID),
-
     LightsToRed(usize),
     LightsToGreen(usize),
+
+    // Events placed last so can be sorted to handle these last
+    VehicleExit(ID),
+    PedestrianExit(ID),
+    VehicleArrival,
+    PedestrianArrival,
 
     StopSimulation
 }
