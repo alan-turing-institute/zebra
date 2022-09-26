@@ -327,7 +327,7 @@ impl  Simulation  for EventDrivenSim  {
 
         // Pedestrian arrival events.
         if let Some(&arrival_time) = self.ped_arrival_times.get((self.ped_counter) as usize) {
-            if arrival_time > curr_time {
+            if arrival_time >= curr_time {
                 events.push(Event(arrival_time, EventType::PedestrianArrival));
             }
         }
@@ -339,7 +339,7 @@ impl  Simulation  for EventDrivenSim  {
 
         // Vehicle arrival events
         if let Some(&arrival_time) = self.veh_arrival_times.get((self.veh_counter) as usize) {
-            if arrival_time > curr_time {
+            if arrival_time >= curr_time {
                 events.push(Event(arrival_time, EventType::VehicleArrival));
             }
         }
@@ -708,7 +708,7 @@ impl  Simulation  for EventDrivenSim  {
             // Temp prints
             println!("---");
             println!("State after update at time: {t}");
-            let as_json= to_json(self.get_state()).unwrap();
+            let as_json = to_json(self.get_state()).unwrap();
             println!("{}", &as_json);
             println!("Total vehicles: {}", self.veh_counter+1);
             println!("Total pedestrians: {}", self.ped_counter+1);
