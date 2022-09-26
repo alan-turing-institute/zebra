@@ -23,8 +23,8 @@ pub use road::*;
 pub use config::{get_zebra_config, get_zebra_config_option};
 pub use simulation::Simulation;
 
-use std::io;                                                                                                                                                              
-fn raw_input() -> () {                                                                                                                                                    
+use std::io;
+fn raw_input() -> () {
     let mut buffer = String::new();                                                                                                                                       
     io::stdin()                                                                                                                                                           
         .read_line(&mut buffer)                                                                                                                                           
