@@ -2,7 +2,7 @@
 name = "zebra"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Zebra Devs"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
