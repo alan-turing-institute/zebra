@@ -169,9 +169,7 @@ impl Vehicle for Car {
 
     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
-        let mut seconds: f32 = time_delta.into();
-
-        let rounding: f32 = 100.0;
+        let seconds: f32 = time_delta.into();
 
         // Update the vehicle's position.
         // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
