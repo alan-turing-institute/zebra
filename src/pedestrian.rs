@@ -47,6 +47,11 @@ impl Obstacle for Pedestrian {
         road.get_crossing_position(&id, *direction)
     }
 
+    fn get_obstacle_length(&self) -> f32 {
+        // Set length as 1m to get cars to stop buffer plus 1m away
+        1.0
+    }
+
     fn get_speed(&self) -> f32 {
         0.0
     }

@@ -19,13 +19,14 @@ pub const MAX_SPEED: f32 = 13.41;
 pub const ACCELERATION_VALUE: f32 = 3.0;
 pub const DECCELERATION_VALUE: f32 = -4.0;
 
+const ROUNDING: f32 = 1000.0;
+
 #[derive(Copy,Clone)]
 pub enum Action {
     Accelerate,
     Deccelerate,
     StaticSpeed
 }
-
 
 pub trait Vehicle : Obstacle {
     fn get_id(&self) -> ID;
@@ -104,6 +105,10 @@ impl Obstacle for Car{
         self.position
     }
 
+    fn get_obstacle_length(&self) -> f32 {
+        self.length
+    }
+
     fn get_speed(&self) -> f32 {
         self.speed
     }
@@ -164,28 +169,15 @@ impl Vehicle for Car {
 
     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
-        let mut seconds: f32 = time_delta.into();
+        let seconds: f32 = time_delta.into();
 
-        // Update the vehicle's position.
-        // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
-        // Round to 2 dec places to avoid incorrect small +ves and -ves
-        // TODO: proper fix required
+        // Update the vehicle's position with rounding
         self.position = ((
             self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
-        )*100.0).round()/100.0;
+        )*ROUNDING).round()/ROUNDING;
 
-
-        // println!{"{}", "Before:"}
-        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
-
-        // Update the vehicle's speed.
-        // self.speed = self.speed + self.acceleration * seconds;
-        // Round to 2 dec places to avoid incorrect small +ves and -ves
-        // TODO: proper fix required
-        self.speed = ((self.speed + self.acceleration * seconds) * 100.0).round()/100.0;
-
-        // println!{"{}", "After:"}
-        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
+        // Update the vehicle's speed with: rounding and min=0, max=MAX_SPEED
+        self.speed = f32::min(f32::max(((self.speed + self.acceleration * seconds) * ROUNDING).round()/ROUNDING, 0.0), MAX_SPEED);
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
@@ -252,18 +244,25 @@ impl Vehicle for Car {
         if peds.len() == 0 {
             return Option::None
         }
+        let mut next_ped: Option<&Pedestrian> = None;
         for ped in peds {
             // If ped is active (crossing), then check if vehicle is at position less than the
             // crossing.
             if ped.is_active(time) {
                 let pos = ped.get_position(road, my_direction);
                 if self.get_veh_position() < pos {
-                    // println!("Pedestrian up ahead: {:?}", ped);
-                    return Some(&ped);
+                    if next_ped.is_none() {
+                        next_ped = Some(&ped);
+                    }
+                    else {
+                        if pos < next_ped.unwrap().get_position(road, my_direction) {
+                            next_ped = Some(&ped);
+                        }
+                    }
                 }
             }
         }
-        None
+        next_ped
     }
     fn next_vehicle<'a>(&self, vehicles: &'a VecDeque<Box<dyn Vehicle>>) -> Option<&'a Box<dyn Vehicle>> {
         let my_direction = &self.get_direction();
@@ -272,7 +271,7 @@ impl Vehicle for Car {
         }
         for vehicle in vehicles.into_iter().rev() {
             // Ignore vehicles going in the other direction OR are the same vehicle
-            if !matches!(vehicle.get_direction(), my_direction) || vehicle.get_id() == self.get_id() {
+            if vehicle.get_direction() != *my_direction || vehicle.get_id() == self.get_id() {
                 continue;
             }
 

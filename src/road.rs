@@ -2,12 +2,12 @@
 use serde::{Serialize, Deserialize};
 
 use crate::obstacle::Obstacle;
-use crate::{ID, TimeDelta};
+use crate::{ID, TimeDelta, get_zebra_config_option};
 use crate::config::{get_zebra_config};
 use crate::{Length, Position, Time};
 use std::rc::Rc;
 
-#[derive(Copy,Clone,Serialize,Deserialize,Debug)]
+#[derive(Copy,Clone,Serialize,Deserialize,Debug,PartialEq)]
 pub enum Direction {
     Up,
     Down
@@ -27,6 +27,9 @@ impl Exit {
 impl Obstacle for Exit {
     fn get_position(&self, road: &Road, direction: &Direction) -> Length {
         self.position
+    }
+    fn get_obstacle_length(&self) -> f32 {
+        0.0
     }
     fn get_speed(&self) -> f32 {
         0.0
@@ -121,6 +124,10 @@ impl Obstacle for Crossing {
         road.get_crossing_position(id, *direction)
     }
 
+    fn get_obstacle_length(&self) -> f32 {
+        0.0
+    }
+
     fn get_speed(&self) -> f32 {
         0.0
     }
@@ -182,10 +189,10 @@ impl Road {
     }
 
     // Here the position of the crossings is assumed to be in the `Up` direction.
-    pub fn config_new() -> Road {
+    pub fn config_new(file_name: Option<&String>) -> Road {
 
         // Load from zebra.toml
-        let config = get_zebra_config();
+        let config = get_zebra_config_option(file_name);
 
         // Assign length from config
         let length = config.road_length;
@@ -287,7 +294,7 @@ mod tests {
 
     #[test]
     fn test_road_constructor() {
-        let road = Road::config_new();    
+        let road = Road::config_new(None);    
     }
 
     #[test]
@@ -300,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_road_get_length_config() {
-        let test_road = Road::config_new();
+        let test_road = Road::config_new(None);
         let test_config = get_zebra_config();
         assert_eq!(test_road.get_length(), test_config.road_length);
     }
@@ -348,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_road_get_crossings() {
-        let road = Road::config_new();
+        let road = Road::config_new(None);
 
         // IDs count monotonically up when direction is Up, and check position is increasing
         let crossings = road.get_crossings(&Direction::Up);

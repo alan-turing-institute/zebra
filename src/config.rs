@@ -31,6 +31,19 @@ pub fn get_zebra_config() -> &'static ZebraConfig {
     &ZEBRA_CONFIG
 }
 
+pub fn get_zebra_config_option(file_name: Option<&String>) -> ZebraConfig {
+    let resolved_file_name = if file_name.is_some() {
+        file_name.unwrap()
+    }
+    else {
+        "zebra.toml"
+    };
+    fs::read(resolved_file_name)
+            .ok()
+            .and_then(|data| toml::from_slice(&data).ok())
+            .unwrap_or_default()
+}
+
 
 /// Configuration settings specific to the simulation
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
