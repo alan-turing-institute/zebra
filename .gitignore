@@ -14,3 +14,8 @@ node_modules
 
 # vs code settings
 .vscode
+
+# Python
+.DS_Store
+.ipynb_checkpoints
+__pycache__

@@ -169,31 +169,15 @@ impl Vehicle for Car {
 
     fn roll_forward_by(&mut self, time_delta: TimeDelta) {
 
-        let mut seconds: f32 = time_delta.into();
+        let seconds: f32 = time_delta.into();
 
-        let rounding: f32 = 100.0;
-
-        // Update the vehicle's position.
-        // self.position = self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds);
-        // Round to 2 dec places to avoid incorrect small +ves and -ves
-        // TODO: proper fix required
+        // Update the vehicle's position with rounding
         self.position = ((
             self.position + self.speed * seconds + (0.5 * self.acceleration * seconds * seconds)
         )*ROUNDING).round()/ROUNDING;
 
-
-        // println!{"{}", "Before:"}
-        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
-
-        // Update the vehicle's speed.
-        // self.speed = self.speed + self.acceleration * seconds;
-        // Round to 2 dec places to avoid incorrect small +ves and -ves
-        // Ensure speed is always ge than 0.0 with max
-        // TODO: proper fix required, consider floor of t'
+        // Update the vehicle's speed with: rounding and min=0, max=MAX_SPEED
         self.speed = f32::min(f32::max(((self.speed + self.acceleration * seconds) * ROUNDING).round()/ROUNDING, 0.0), MAX_SPEED);
-
-        // println!{"{}", "After:"}
-        // println!("{}, {}, {}", self.speed, self.acceleration, seconds);
 
         assert!(self.speed <= MAX_SPEED);
         assert!(self.speed >= 0.0);
